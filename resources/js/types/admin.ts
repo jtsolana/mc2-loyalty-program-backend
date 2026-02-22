@@ -32,6 +32,7 @@ export interface PointTransaction {
 
 export interface UserRow {
     id: number;
+    hashed_id: string;
     name: string;
     username: string | null;
     email: string | null;
@@ -55,6 +56,7 @@ export interface RuleTypeOption {
 
 export interface PointRule {
     id: number;
+    hashed_id: string;
     name: string;
     type: PointRuleType;
     spend_amount: string | null;
@@ -67,6 +69,7 @@ export interface PointRule {
 
 export interface RewardRule {
     id: number;
+    hashed_id: string;
     name: string;
     reward_title: string;
     points_required: number;
@@ -77,6 +80,7 @@ export interface RewardRule {
 
 export interface Promotion {
     id: number;
+    hashed_id: string;
     title: string;
     excerpt: string;
     thumbnail_url: string | null;

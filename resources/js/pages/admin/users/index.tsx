@@ -1,6 +1,6 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { Pencil, Plus, Search, Trash2, Users2 } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { DataTable } from '@/components/admin/data-table';
 import { Pagination } from '@/components/admin/pagination';
 import { Button } from '@/components/ui/button';
@@ -49,10 +49,20 @@ function UserFormModal({
         role: editing?.roles?.[0] ?? (roles[0]?.name ?? ''),
     });
 
+    useEffect(() => {
+        setData({
+            name: editing?.name ?? '',
+            username: editing?.username ?? '',
+            email: editing?.email ?? '',
+            password: '',
+            role: editing?.roles?.[0] ?? (roles[0]?.name ?? ''),
+        });
+    }, [editing]);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (editing) {
-            put(admin.users.update({ user: editing.id }).url, {
+            put(admin.users.update({ user: editing.hashed_id }).url, {
                 onSuccess: () => { reset(); onClose(); },
             });
         } else {
@@ -140,7 +150,7 @@ export default function UsersIndex({ users, roles, filters }: Props) {
 
     const handleDelete = (user: UserRow) => {
         if (!confirm(`Delete user "${user.name}"? This cannot be undone.`)) return;
-        router.delete(admin.users.destroy({ user: user.id }).url, { preserveScroll: true });
+        router.delete(admin.users.destroy({ user: user.hashed_id }).url, { preserveScroll: true });
     };
 
     const openCreate = () => {

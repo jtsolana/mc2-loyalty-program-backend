@@ -1,6 +1,6 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { CupSoda, Pencil, Plus, Star, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DataTable } from '@/components/admin/data-table';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -51,12 +51,24 @@ function RuleFormModal({
         is_active: editing?.is_active ?? true,
     });
 
+    useEffect(() => {
+        setData({
+            name: editing?.name ?? '',
+            type: editing?.type ?? 'spend_based',
+            spend_amount: editing?.spend_amount ?? '50',
+            minimum_spend: editing?.minimum_spend ?? '0',
+            points_per_unit: String(editing?.points_per_unit ?? 1),
+            points_per_item: String(editing?.points_per_item ?? 1),
+            is_active: editing?.is_active ?? true,
+        });
+    }, [editing]);
+
     const isPerItem = data.type === 'per_item';
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (editing) {
-            put(admin.pointRules.update({ pointRule: editing.id }).url, {
+            put(admin.pointRules.update({ pointRule: editing.hashed_id }).url, {
                 onSuccess: () => { reset(); onClose(); },
             });
         } else {
@@ -222,7 +234,7 @@ export default function PointRulesIndex({ rules, ruleTypes }: Props) {
 
     const handleDelete = (rule: PointRule) => {
         if (!confirm(`Delete rule "${rule.name}"?`)) return;
-        router.delete(admin.pointRules.destroy({ pointRule: rule.id }).url, { preserveScroll: true });
+        router.delete(admin.pointRules.destroy({ pointRule: rule.hashed_id }).url, { preserveScroll: true });
     };
 
     const openCreate = () => {

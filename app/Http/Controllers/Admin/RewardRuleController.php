@@ -13,8 +13,19 @@ class RewardRuleController extends Controller
 {
     public function index(): Response
     {
+        $rules = RewardRule::latest()->get()->map(fn ($rule) => [
+            'id' => $rule->id,
+            'hashed_id' => $rule->hashed_id,
+            'name' => $rule->name,
+            'reward_title' => $rule->reward_title,
+            'points_required' => $rule->points_required,
+            'expires_in_days' => $rule->expires_in_days,
+            'is_active' => $rule->is_active,
+            'created_at' => $rule->created_at?->toDateString(),
+        ]);
+
         return Inertia::render('admin/reward-rules/index', [
-            'rules' => RewardRule::latest()->get(),
+            'rules' => $rules,
         ]);
     }
 

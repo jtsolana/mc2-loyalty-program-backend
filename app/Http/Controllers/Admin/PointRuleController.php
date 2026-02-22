@@ -14,7 +14,18 @@ class PointRuleController extends Controller
 {
     public function index(): Response
     {
-        $rules = PointRule::latest()->get();
+        $rules = PointRule::latest()->get()->map(fn ($rule) => [
+            'id' => $rule->id,
+            'hashed_id' => $rule->hashed_id,
+            'name' => $rule->name,
+            'type' => $rule->type->value,
+            'spend_amount' => $rule->spend_amount,
+            'minimum_spend' => $rule->minimum_spend,
+            'points_per_unit' => $rule->points_per_unit,
+            'points_per_item' => $rule->points_per_item,
+            'is_active' => $rule->is_active,
+            'created_at' => $rule->created_at?->toDateString(),
+        ]);
 
         return Inertia::render('admin/point-rules/index', [
             'rules' => $rules,

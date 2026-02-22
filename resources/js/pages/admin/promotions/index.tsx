@@ -64,7 +64,7 @@ function PromotionFormModal({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (editing) {
-            post(admin.promotions.update({ promotion: editing.id }).url, {
+            post(admin.promotions.update({ promotion: editing.hashed_id }).url, {
                 forceFormData: true,
                 onSuccess: () => {
                     reset();
@@ -189,7 +189,7 @@ export default function PromotionsIndex({ promotions }: Props) {
 
     const handleDelete = (promotion: Promotion) => {
         if (!confirm(`Delete "${promotion.title}"?`)) return;
-        router.delete(admin.promotions.destroy({ promotion: promotion.id }).url, { preserveScroll: true });
+        router.delete(admin.promotions.destroy({ promotion: promotion.hashed_id }).url, { preserveScroll: true });
     };
 
     const openCreate = () => {

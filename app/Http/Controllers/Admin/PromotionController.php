@@ -14,8 +14,21 @@ class PromotionController extends Controller
 {
     public function index(): Response
     {
+        $promotions = Promotion::latest()->paginate(20)->through(fn ($promotion) => [
+            'id' => $promotion->id,
+            'hashed_id' => $promotion->hashed_id,
+            'title' => $promotion->title,
+            'excerpt' => $promotion->excerpt,
+            'thumbnail_url' => $promotion->thumbnail_url,
+            'content' => $promotion->content,
+            'type' => $promotion->type,
+            'is_published' => $promotion->is_published,
+            'published_at' => $promotion->published_at?->toDateTimeString(),
+            'created_at' => $promotion->created_at?->toDateString(),
+        ]);
+
         return Inertia::render('admin/promotions/index', [
-            'promotions' => Promotion::latest()->paginate(20),
+            'promotions' => $promotions,
         ]);
     }
 

@@ -1,6 +1,6 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { Gift, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DataTable } from '@/components/admin/data-table';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -44,10 +44,20 @@ function RuleFormModal({
         is_active: editing?.is_active ?? true,
     });
 
+    useEffect(() => {
+        setData({
+            name: editing?.name ?? '',
+            reward_title: editing?.reward_title ?? '',
+            points_required: String(editing?.points_required ?? 500),
+            expires_in_days: String(editing?.expires_in_days ?? 30),
+            is_active: editing?.is_active ?? true,
+        });
+    }, [editing]);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (editing) {
-            put(admin.rewardRules.update({ rewardRule: editing.id }).url, {
+            put(admin.rewardRules.update({ rewardRule: editing.hashed_id }).url, {
                 onSuccess: () => { reset(); onClose(); },
             });
         } else {
@@ -157,7 +167,7 @@ export default function RewardRulesIndex({ rules }: Props) {
 
     const handleDelete = (rule: RewardRule) => {
         if (!confirm(`Delete reward rule "${rule.name}"?`)) return;
-        router.delete(admin.rewardRules.destroy({ rewardRule: rule.id }).url, { preserveScroll: true });
+        router.delete(admin.rewardRules.destroy({ rewardRule: rule.hashed_id }).url, { preserveScroll: true });
     };
 
     const openCreate = () => {
