@@ -36,9 +36,15 @@ jobs:
 
       # Upload project to server
       - name: Sync files to GCP VM
-        uses: burnett01/rsync-deployments@v7.0.1
+        uses: burnett01/rsync-deployments@v6
         with:
-          switches: -avzr --delete --exclude=".git" --exclude="node_modules"
+          switches: >
+            -avzr --delete
+            --exclude=".git"
+            --exclude="node_modules"
+            --exclude=".env"
+            --exclude="storage"
+            --exclude="vendor"
           path: ./
           remote_path: /var/www/mc2-loyalty-program-backend
           remote_host: ${{ secrets.SERVER_HOST }}
