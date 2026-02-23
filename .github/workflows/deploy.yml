@@ -36,20 +36,19 @@ jobs:
 
       # Upload project to server
       - name: Sync files to GCP VM
-        uses: burnett01/rsync-deployments@6.0.0
+        uses: easingthemes/ssh-deploy@v4.1.10
         with:
-          switches: >
+          SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          REMOTE_HOST: ${{ secrets.SERVER_HOST }}
+          REMOTE_USER: ${{ secrets.SERVER_USER }}
+          TARGET: /var/www/mc2-loyalty-program-backend
+          ARGS: >
             -avzr --delete
             --exclude=".git"
             --exclude="node_modules"
             --exclude=".env"
             --exclude="storage"
             --exclude="vendor"
-          path: ./
-          remote_path: /var/www/mc2-loyalty-program-backend
-          remote_host: ${{ secrets.SERVER_HOST }}
-          remote_user: ${{ secrets.SERVER_USER }}
-          remote_key: ${{ secrets.SERVER_SSH_KEY }}
 
       # Run server-only commands
       - name: Run Laravel Production Commands
