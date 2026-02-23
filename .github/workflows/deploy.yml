@@ -36,7 +36,7 @@ jobs:
 
       # Upload project to server
       - name: Sync files to GCP VM
-        uses: burnett01/rsync-deployments@v6
+        uses: burnett01/rsync-deployments@6.0.0
         with:
           switches: >
             -avzr --delete
