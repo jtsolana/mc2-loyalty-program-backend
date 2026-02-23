@@ -1,0 +1,64 @@
+name: Deploy to GCP VM
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, bcmath, pdo, mysql
+          coverage: none
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install PHP Dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+
+      - name: Install Node Dependencies
+        run: npm ci
+
+      - name: Build Frontend
+        run: npm run build
+
+      # Upload project to server
+      - name: Sync files to GCP VM
+        uses: burnett01/rsync-deployments@v7.0.1
+        with:
+          switches: -avzr --delete --exclude=".git" --exclude="node_modules"
+          path: ./
+          remote_path: /var/www/mc2-loyalty-program-backend
+          remote_host: ${{ secrets.SERVER_HOST }}
+          remote_user: ${{ secrets.SERVER_USER }}
+          remote_key: ${{ secrets.SERVER_SSH_KEY }}
+
+      # Run server-only commands
+      - name: Run Laravel Production Commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /var/www/mc2-loyalty-program-backend
+
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan event:cache
+
+            php artisan horizon:terminate
+          sudo systemctl restart php8.4-fpm
