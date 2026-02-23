@@ -61,4 +61,4 @@ jobs:
             php artisan event:cache
 
             php artisan horizon:terminate
-          sudo systemctl restart php8.4-fpm
+            sudo systemctl restart php8.4-fpm
