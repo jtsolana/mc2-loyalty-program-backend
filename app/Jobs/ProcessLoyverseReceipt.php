@@ -45,7 +45,7 @@ class ProcessLoyverseReceipt implements ShouldQueue
             ? User::where('loyverse_customer_id', $loyverseCustomerId)->first()
             : null;
 
-        $pointsEarned = $customer
+        $pointsEarned = $customer && $totalMoney > 0
             ? $pointService->calculatePoints($totalMoney, $itemCount)
             : 0;
 
