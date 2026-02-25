@@ -26,6 +26,7 @@ class PointController extends Controller
     {
         $transactions = $request->user()
             ->pointTransactions()
+            ->orderByDesc('id')
             ->latest()
             ->paginate(20);
 

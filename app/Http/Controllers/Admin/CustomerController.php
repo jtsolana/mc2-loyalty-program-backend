@@ -57,11 +57,13 @@ class CustomerController extends Controller
 
         $purchases = $user->purchases()
             ->latest()
+            ->orderByDesc('id')
             ->limit(10)
             ->get(['id', 'loyverse_receipt_id', 'total_amount', 'points_earned', 'status', 'created_at']);
 
         $transactions = $user->pointTransactions()
             ->latest()
+            ->orderByDesc('id')
             ->limit(10)
             ->get(['id', 'type', 'points', 'balance_after', 'description', 'created_at']);
 
