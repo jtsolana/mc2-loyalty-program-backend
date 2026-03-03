@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Auth\RegisterRequest;
-use App\Http\Resources\Api\UserResource;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 
@@ -14,12 +13,10 @@ class RegisterController extends Controller
 
     public function __invoke(RegisterRequest $request): JsonResponse
     {
-        $user = $this->authService->register($request->validated());
-        $token = $user->createToken($request->input('device_name', 'mobile'))->plainTextToken;
+        $this->authService->register($request->validated());
 
         return response()->json([
-            'user' => new UserResource($user->load('roles.permissions', 'loyaltyPoint')),
-            'token' => $token,
+            'message' => 'Registration successful. Please check your email for verification.',
         ], 201);
     }
 }

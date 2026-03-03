@@ -16,6 +16,9 @@ use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Kreait\Firebase\Messaging\CloudMessage;
+use Kreait\Firebase\Messaging\Notification;
+use Kreait\Laravel\Firebase\Facades\Firebase;
 
 class PointService
 {
@@ -71,63 +74,66 @@ class PointService
                 'reference_id' => $purchase?->id,
             ]);
 
-            $this->checkAndIssueRewards($customer, $loyaltyPoint->refresh());
+            $this->checkAndNotifyForReedemableRewards($customer);
 
             return $transaction;
         });
     }
 
-    /**
-     * Check qualifying reward rules and issue rewards for a customer.
-     * Points are deducted immediately when a reward is issued.
-     */
-    public function checkAndIssueRewards(User $customer, ?LoyaltyPoint $loyaltyPoint = null): Collection
+    private function checkAndNotifyForReedemableRewards(User $customer): void
     {
-        $loyaltyPoint ??= $customer->loyaltyPoint;
+        $rewardRules = RewardRule::where('is_active', true)
+            ->where('points_required', '<=', $customer->loyaltyPoint->total_points)
+            ->count();
 
-        if (! $loyaltyPoint || $loyaltyPoint->total_points === 0) {
-            return collect();
+        if ($rewardRules > 0) {
+            $messaging = Firebase::messaging();
+            $mobileScheme = config('app.mobile_scheme');
+
+            foreach ($customer->devices as $device) {
+
+                $message = CloudMessage::withTarget('token', $device->fcm_token)
+                    ->withNotification(
+                        Notification::create(
+                            '🎉 Reward Unlocked!',
+                            'You are now eligible to claim your reward!'
+                        )
+                    )
+                    ->withData([
+                        'type' => 'reward',
+                        'user_id' => (string) $customer->hashed_id,
+                        'deep_link' => "{$mobileScheme}rewards"
+                    ]);
+
+                try {
+                    $messaging->send($message);
+                } catch (\Kreait\Firebase\Exception\Messaging\NotFound $e) {
+                    // Token expired or invalid
+                    $device->delete();
+                }
+            }
         }
-
-        $pendingRuleIds = $customer->rewards()
-            ->where('status', RewardStatus::Pending)
-            ->pluck('reward_rule_id');
-
-        $qualifyingRules = RewardRule::where('is_active', true)
-            ->where('points_required', '<=', $loyaltyPoint->total_points)
-            ->whereNotIn('id', $pendingRuleIds)
-            ->get();
-
-        $issued = collect();
-
-        foreach ($qualifyingRules as $rule) {
-            $reward = $this->issueReward($customer, $rule, $loyaltyPoint);
-            $loyaltyPoint->refresh();
-            $issued->push($reward);
-        }
-
-        return $issued;
     }
 
-    private function issueReward(User $customer, RewardRule $rule, LoyaltyPoint $loyaltyPoint): Reward
+    public function claimReward(User $customer, RewardRule $rule, LoyaltyPoint $loyaltyPoint, int $claimAmount): Reward
     {
         $reward = Reward::create([
             'user_id' => $customer->id,
             'reward_rule_id' => $rule->id,
-            'points_deducted' => $rule->points_required,
-            'status' => RewardStatus::Pending,
+            'points_deducted' => ($rule->points_required * $claimAmount),
+            'status' => RewardStatus::Pending->value,
             'expires_at' => Carbon::now()->addDays($rule->expires_in_days),
         ]);
 
-        $loyaltyPoint->decrement('total_points', $rule->points_required);
+        $loyaltyPoint->decrement('total_points', ($rule->points_required * $claimAmount));
         $loyaltyPoint->refresh();
 
         PointTransaction::create([
             'user_id' => $customer->id,
             'type' => TransactionType::Reward->value,
-            'points' => -$rule->points_required,
+            'points' => -($rule->points_required * $claimAmount),
             'balance_after' => $loyaltyPoint->total_points,
-            'description' => "Reward issued: {$rule->reward_title}",
+            'description' => "Reward claimed: {$rule->reward_title} ({$claimAmount}x)",
             'reference_type' => Reward::class,
             'reference_id' => $reward->id,
         ]);

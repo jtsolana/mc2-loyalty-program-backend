@@ -1,21 +1,20 @@
 <?php
 
-use App\Http\Controllers\Api\V1\Admin\CustomerController;
-use App\Http\Controllers\Api\V1\Admin\PointRuleController;
-use App\Http\Controllers\Api\V1\Admin\RewardRuleController;
-use App\Http\Controllers\Api\V1\Admin\RoleController;
+use App\Http\Controllers\Api\V1\Auth\ChangePasswordController;
+use App\Http\Controllers\Api\V1\Auth\ForgotPasswordController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\RegisterController;
+use App\Http\Controllers\Api\V1\Auth\ResetPasswordController;
 use App\Http\Controllers\Api\V1\Auth\SocialAuthController;
+use App\Http\Controllers\Api\V1\CompanyProfileController;
 use App\Http\Controllers\Api\V1\Customer\PointController;
 use App\Http\Controllers\Api\V1\Customer\ProfileController;
 use App\Http\Controllers\Api\V1\Customer\RewardController;
 use App\Http\Controllers\Api\V1\Loyverse\WebhookController;
 use App\Http\Controllers\Api\V1\PromotionController;
 use App\Http\Controllers\Api\V1\Staff\ClaimRewardController;
-use App\Http\Controllers\Api\V1\Staff\EarnPointsController;
-use App\Http\Controllers\Api\V1\Staff\RedeemPointsController;
+use App\Http\Controllers\Api\V1\UserDeviceController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -24,6 +23,9 @@ Route::prefix('v1')->group(function () {
         Route::post('login', LoginController::class);
         Route::post('social/{provider}', SocialAuthController::class);
         Route::post('logout', LogoutController::class)->middleware('auth:sanctum');
+        Route::post('forgot-password', ForgotPasswordController::class);
+        Route::post('reset-password', ResetPasswordController::class);
+        Route::post('change-password', ChangePasswordController::class)->middleware('auth:sanctum');
     });
 
     Route::middleware(['auth:sanctum', 'permission:points.view'])->prefix('customer')->group(function () {
@@ -41,13 +43,15 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', 'permission:points.redeem'])->prefix('staff')->group(function () {
         // Route::post('redeem-points', RedeemPointsController::class);
         Route::get('customers/{user}/rewards', [ClaimRewardController::class, 'customerRewards']);
-        Route::post('rewards/{reward}/claim', [ClaimRewardController::class, 'claim']);
+        Route::post('rewards/{user}/claim', [ClaimRewardController::class, 'claim']);
     });
 
     Route::post('loyverse/webhook', WebhookController::class);
 
     Route::get('promotions', [PromotionController::class, 'index']);
     Route::get('promotions/{promotion}', [PromotionController::class, 'show']);
+
+    Route::get('terms', [CompanyProfileController::class, 'terms']);
 
     // Route::middleware(['auth:sanctum', 'permission:customers.manage'])->prefix('admin')->group(function () {
     //     Route::get('customers', [CustomerController::class, 'index']);
@@ -79,4 +83,9 @@ Route::prefix('v1')->group(function () {
     //     Route::get('roles/{role}/permissions', [RoleController::class, 'permissions']);
     //     Route::put('roles/{role}/permissions', [RoleController::class, 'syncPermissions']);
     // });
+
+    Route::middleware('auth:sanctum')->prefix('devices')->group(function () {
+        Route::post('register', [UserDeviceController::class, 'register']);
+        Route::post('unregister', [UserDeviceController::class, 'unregister']);
+    });
 });

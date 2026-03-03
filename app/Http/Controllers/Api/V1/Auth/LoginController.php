@@ -24,6 +24,12 @@ class LoginController extends Controller
             ]);
         }
 
+        if (! $user->hasVerifiedEmail()) {
+            return response()->json([
+                'message' => 'Your email address is not verified. Please check your inbox for the verification link.',
+            ], 403);
+        }
+
         $token = $user->createToken($request->input('device_name', 'mobile'))->plainTextToken;
 
         return response()->json([

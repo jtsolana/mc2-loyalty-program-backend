@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1\Customer;
 
-use App\Enums\RewardStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Customer\UpdateProfileRequest;
 use App\Http\Resources\Api\UserResource;
@@ -16,7 +15,6 @@ class ProfileController extends Controller
         $user = $request->user()->load([
             'roles.permissions',
             'loyaltyPoint',
-            'rewards' => fn ($q) => $q->where('status', RewardStatus::Pending)->with('rewardRule'),
         ]);
 
         return response()->json(['data' => new UserResource($user)]);

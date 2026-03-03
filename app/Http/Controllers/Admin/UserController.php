@@ -69,6 +69,7 @@ class UserController extends Controller
 
         $role = Role::where('name', $data['role'])->first();
         $user->roles()->attach($role);
+        $user->markEmailAsVerified();
 
         return back()->with('success', "User {$user->name} created successfully.");
     }

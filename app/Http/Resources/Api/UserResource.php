@@ -32,6 +32,7 @@ class UserResource extends JsonResource
                         'reward_title' => $rule->reward_title,
                         'points_required' => $rule->points_required,
                         'current_points' => $totalPoints,
+                        'redeemable_reward' => (int) floor($totalPoints / $rule->points_required),
                         'points_remaining' => max(0, $rule->points_required - $totalPoints),
                         'progress_percentage' => min(100, (int) round($totalPoints / $rule->points_required * 100)),
                     ])

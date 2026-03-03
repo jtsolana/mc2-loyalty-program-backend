@@ -26,7 +26,7 @@ function makeWebhookPayload(string $receiptId, float $totalMoney, ?string $custo
                 'total_money' => $totalMoney,
                 'customer_id' => $customerId,
                 'line_items' => $quantity > 0
-                    ? [['quantity' => $quantity, 'item_name' => 'Drink', 'price' => $totalMoney]]
+                    ? [['quantity' => $quantity, 'item_name' => 'Drink', 'sku' => 'DRINK-01', 'price' => $totalMoney, 'total_money' => $totalMoney]]
                     : [],
             ],
         ],
@@ -41,7 +41,7 @@ function makeSaleReceipt(string $receiptId, float $totalMoney, ?string $customer
         'total_money' => $totalMoney,
         'customer_id' => $customerId,
         'line_items' => $quantity > 0
-            ? [['quantity' => $quantity, 'item_name' => 'Drink', 'price' => $totalMoney]]
+            ? [['quantity' => $quantity, 'item_name' => 'Drink', 'sku' => 'DRINK-01', 'price' => $totalMoney, 'total_money' => $totalMoney]]
             : [],
     ];
 }
@@ -104,7 +104,7 @@ it('job awards points to a matched customer', function () {
     LoyaltyPoint::factory()->create(['user_id' => $customer->id, 'total_points' => 0]);
 
     $receiptId = 'R-'.Str::random(8);
-    $receipt = makeSaleReceipt($receiptId, 500, 'LV-CUST-001');
+    $receipt = makeSaleReceipt($receiptId, 500, 'LV-CUST-001', 10);
 
     (new ProcessLoyverseReceipt($receipt))->handle(app(PointService::class));
 
@@ -132,6 +132,62 @@ it('job skips duplicate receipts', function () {
     (new ProcessLoyverseReceipt($receipt))->handle(app(PointService::class));
 
     expect(Purchase::where('loyverse_receipt_id', $receiptId)->count())->toBe(1);
+});
+
+it('job excludes E- SKU items from point calculation', function () {
+    PointRule::factory()->create(['spend_amount' => 50, 'points_per_unit' => 1, 'is_active' => true]);
+    $customer = User::factory()->create(['loyverse_customer_id' => 'LV-CUST-SKU-01']);
+    $customer->roles()->attach(Role::where('name', 'customer')->first());
+    LoyaltyPoint::factory()->create(['user_id' => $customer->id, 'total_points' => 0]);
+
+    $receiptId = 'R-'.Str::random(8);
+    $receipt = [
+        'receipt_number' => $receiptId,
+        'receipt_type' => 'SALE',
+        'total_money' => 600,
+        'customer_id' => 'LV-CUST-SKU-01',
+        'line_items' => [
+            ['quantity' => 2, 'item_name' => 'Coffee', 'sku' => 'COFFEE-01', 'price' => 100, 'total_money' => 200],
+            ['quantity' => 1, 'item_name' => 'E-Gift Card', 'sku' => 'E-GIFT-50', 'price' => 400, 'total_money' => 400],
+        ],
+    ];
+
+    (new ProcessLoyverseReceipt($receipt))->handle(app(PointService::class));
+
+    // Only the 200 eligible amount is used: 200 / 50 = 4 points
+    expect($customer->fresh()->loyaltyPoint->total_points)->toBe(4);
+    $this->assertDatabaseHas('purchases', [
+        'loyverse_receipt_id' => $receiptId,
+        'total_amount' => 600,
+        'points_earned' => 4,
+    ]);
+});
+
+it('job awards zero points when all items have E- SKUs', function () {
+    PointRule::factory()->create(['spend_amount' => 50, 'points_per_unit' => 1, 'is_active' => true]);
+    $customer = User::factory()->create(['loyverse_customer_id' => 'LV-CUST-SKU-02']);
+    $customer->roles()->attach(Role::where('name', 'customer')->first());
+    LoyaltyPoint::factory()->create(['user_id' => $customer->id, 'total_points' => 0]);
+
+    $receiptId = 'R-'.Str::random(8);
+    $receipt = [
+        'receipt_number' => $receiptId,
+        'receipt_type' => 'SALE',
+        'total_money' => 500,
+        'customer_id' => 'LV-CUST-SKU-02',
+        'line_items' => [
+            ['quantity' => 1, 'item_name' => 'E-Gift Card', 'sku' => 'E-GIFT-500', 'price' => 500, 'total_money' => 500],
+        ],
+    ];
+
+    (new ProcessLoyverseReceipt($receipt))->handle(app(PointService::class));
+
+    expect($customer->fresh()->loyaltyPoint->total_points)->toBe(0);
+    $this->assertDatabaseHas('purchases', [
+        'loyverse_receipt_id' => $receiptId,
+        'total_amount' => 500,
+        'points_earned' => 0,
+    ]);
 });
 
 it('job skips non-SALE receipts', function () {

@@ -7,7 +7,12 @@ use App\Http\Controllers\Admin\PointRuleController as AdminPointRuleController;
 use App\Http\Controllers\Admin\PromotionController as AdminPromotionController;
 use App\Http\Controllers\Admin\RewardRuleController as AdminRewardRuleController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/email/verify/{id}/{hash}', VerifyEmailController::class)
+    ->middleware(['signed', 'throttle:6,1'])
+    ->name('verification.verify.mobile');
 
 Route::get('/', fn () => redirect()->route('admin.dashboard'))->name('home');
 

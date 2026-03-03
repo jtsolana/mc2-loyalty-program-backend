@@ -122,4 +122,5 @@ export interface CompanyProfile {
     address: string | null;
     contact_number: string | null;
     email: string | null;
+    terms: string | null;
 }

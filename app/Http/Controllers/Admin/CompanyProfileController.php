@@ -23,6 +23,7 @@ class CompanyProfileController extends Controller
                 'address' => $company->address,
                 'contact_number' => $company->contact_number,
                 'email' => $company->email,
+                'terms' => $company->terms,
             ],
         ]);
     }
@@ -35,11 +36,12 @@ class CompanyProfileController extends Controller
             'address' => ['nullable', 'string', 'max:1000'],
             'contact_number' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
+            'terms' => ['nullable', 'string'],
         ]);
 
         $company = CompanyProfile::getSingleton();
 
-        $data = $request->only(['name', 'address', 'contact_number', 'email']);
+        $data = $request->only(['name', 'address', 'contact_number', 'email', 'terms']);
 
         if ($request->hasFile('logo')) {
             if ($company->logo) {

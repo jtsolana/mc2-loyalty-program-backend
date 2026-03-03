@@ -8,6 +8,7 @@ declare module '@inertiajs/core' {
             auth: Auth;
             sidebarOpen: boolean;
             company: CompanyProfile | null;
+            flash: { success: string | null };
             [key: string]: unknown;
         };
     }

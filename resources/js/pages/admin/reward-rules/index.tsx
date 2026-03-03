@@ -204,7 +204,7 @@ export default function RewardRulesIndex({ rules }: Props) {
                 <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm dark:border-blue-800 dark:bg-blue-900/20">
                     <p className="font-medium text-blue-800 dark:text-blue-200">How reward rules work</p>
                     <p className="mt-1 text-blue-700 dark:text-blue-300">
-                        When a customer's points reach the threshold, a reward is automatically issued and their points are deducted.
+                        When a customer's points reach the threshold, a reward will be available for them to claim.
                         Staff can mark rewards as claimed when the customer uses them. Unclaimed rewards expire after the set number of days.
                     </p>
                 </div>

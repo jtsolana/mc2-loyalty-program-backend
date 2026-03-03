@@ -17,6 +17,7 @@ class CompanyProfile extends Model
         'address',
         'contact_number',
         'email',
+        'terms',
     ];
 
     public static function getSingleton(): static

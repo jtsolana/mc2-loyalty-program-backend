@@ -89,7 +89,11 @@ class PromotionController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'excerpt' => ['required', 'string', 'max:500'],
             'content' => ['required', 'string'],
-            'type' => ['required', 'string', 'in:promotion,announcement'],
+            'type' => [
+                'required',
+                'string',
+                'in:popup-promotion,promotion,announcement',
+            ],
             'thumbnail' => ['nullable', 'image', 'max:2048'],
             'is_published' => ['required', 'boolean'],
         ]);

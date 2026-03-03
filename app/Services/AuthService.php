@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 
 class AuthService
@@ -31,15 +32,17 @@ class AuthService
         LoyaltyPoint::create(['user_id' => $user->id]);
 
         $loyverseId = $this->loyverseService->createCustomer([
-            'name' => $user->name,
-            'email' => $user->email,
-            'phone' => $user->phone,
+            'name' => '---------------------',
+            'email' => Str::lower(Str::toBase64($user->email)).'@xxxx.com',
+            'phone' => '00000000000',
             'customer_code' => $user->hashed_id,
         ]);
 
         if ($loyverseId) {
             $user->update(['loyverse_customer_id' => $loyverseId]);
         }
+
+        $user->sendEmailVerificationNotification();
 
         return $user;
     }

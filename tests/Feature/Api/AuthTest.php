@@ -3,7 +3,9 @@
 use App\Models\User;
 use App\Services\LoyverseService;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 
 use function Pest\Laravel\mock;
 
@@ -26,13 +28,11 @@ it('registers a new customer with a hashed_id and saves the Loyverse customer ID
     ]);
 
     $response->assertStatus(201)
-        ->assertJsonStructure(['user', 'token'])
-        ->assertJsonPath('user.email', 'john@example.com');
+        ->assertJsonStructure(['message']);
 
     $user = User::where('email', 'john@example.com')->first();
 
     expect($user->hashed_id)->not->toBeEmpty();
-    $response->assertJsonPath('user.hashed_id', $user->hashed_id);
 
     $this->assertDatabaseHas('users', [
         'email' => 'john@example.com',
@@ -77,6 +77,25 @@ it('assigns customer role on registration', function () {
     expect($user->hasRole('customer'))->toBeTrue();
 });
 
+it('sends email verification notification after registration', function () {
+    Notification::fake();
+
+    mock(LoyverseService::class)
+        ->shouldReceive('createCustomer')
+        ->once()
+        ->andReturn(null);
+
+    $this->postJson('/api/v1/auth/register', [
+        'name' => 'John Doe',
+        'email' => 'john@example.com',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+    ])->assertStatus(201);
+
+    $user = User::where('email', 'john@example.com')->first();
+    Notification::assertSentTo($user, VerifyEmail::class);
+});
+
 it('fails registration with duplicate email', function () {
     User::factory()->create(['email' => 'dupe@example.com']);
 
@@ -107,6 +126,16 @@ it('logs in with username', function () {
         'login' => 'testuser',
         'password' => 'secret',
     ])->assertSuccessful()->assertJsonStructure(['user', 'token']);
+});
+
+it('blocks login for unverified users', function () {
+    $user = User::factory()->unverified()->create(['password' => Hash::make('secret')]);
+
+    $this->postJson('/api/v1/auth/login', [
+        'login' => $user->email,
+        'password' => 'secret',
+    ])->assertForbidden()
+        ->assertJsonPath('message', 'Your email address is not verified. Please check your inbox for the verification link.');
 });
 
 it('rejects invalid credentials', function () {

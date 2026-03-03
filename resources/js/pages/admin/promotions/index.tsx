@@ -120,6 +120,7 @@ function PromotionFormModal({
                                 <SelectValue placeholder="Select type" />
                             </SelectTrigger>
                             <SelectContent>
+                                <SelectItem value="popup-promotion">Popup Promotion</SelectItem>
                                 <SelectItem value="promotion">Promotion</SelectItem>
                                 <SelectItem value="announcement">Announcement</SelectItem>
                             </SelectContent>

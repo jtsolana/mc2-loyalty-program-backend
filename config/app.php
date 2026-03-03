@@ -123,4 +123,8 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'eligibility_sku_prefix' => env('ELIGIBILITY_SKU_PREFIX', 'E-'),
+
+    'mobile_scheme' => env('MOBILE_APP_SCHEME', 'mc2app://'),
+
 ];

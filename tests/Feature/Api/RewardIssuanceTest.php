@@ -112,23 +112,63 @@ it('inactive reward rule does not trigger reward issuance', function () {
     expect($customer->fresh()->rewards()->count())->toBe(0);
 });
 
-it('customer can view their rewards with rule details', function () {
+it('customer can view redeemable rewards based on current points', function () {
+    $customer = makeCustomerForRewards(30);
+    RewardRule::factory()->requiresPoints(10)->create(['reward_title' => 'Free Drink']);
+
+    $this->actingAs($customer, 'sanctum')
+        ->getJson('/api/v1/customer/rewards')
+        ->assertSuccessful()
+        ->assertJsonPath('data.current_points', 30)
+        ->assertJsonCount(1, 'data.redeemable')
+        ->assertJsonPath('data.redeemable.0.reward_title', 'Free Drink')
+        ->assertJsonPath('data.redeemable.0.points_required', 10)
+        ->assertJsonPath('data.redeemable.0.redeemable_count', 3);
+});
+
+it('customer sees no redeemable rewards when points are insufficient', function () {
+    $customer = makeCustomerForRewards(5);
+    RewardRule::factory()->requiresPoints(10)->create(['reward_title' => 'Free Drink']);
+
+    $this->actingAs($customer, 'sanctum')
+        ->getJson('/api/v1/customer/rewards')
+        ->assertSuccessful()
+        ->assertJsonPath('data.current_points', 5)
+        ->assertJsonCount(0, 'data.redeemable');
+});
+
+it('customer reward response includes current points and empty history when no rewards claimed', function () {
+    $customer = makeCustomerForRewards(50);
+
+    $this->actingAs($customer, 'sanctum')
+        ->getJson('/api/v1/customer/rewards')
+        ->assertSuccessful()
+        ->assertJsonPath('data.current_points', 50)
+        ->assertJsonStructure(['data' => ['current_points', 'redeemable', 'history']])
+        ->assertJsonCount(0, 'data.history');
+});
+
+it('customer history includes claimed and expired rewards', function () {
     $customer = makeCustomerForRewards(0);
     $rewardRule = RewardRule::factory()->requiresPoints(100)->create(['reward_title' => 'Free Coffee']);
-    Reward::factory()->create([
+
+    Reward::factory()->claimed()->create([
         'user_id' => $customer->id,
         'reward_rule_id' => $rewardRule->id,
         'points_deducted' => 100,
-        'status' => RewardStatus::Pending,
+    ]);
+
+    Reward::factory()->expired()->create([
+        'user_id' => $customer->id,
+        'reward_rule_id' => $rewardRule->id,
+        'points_deducted' => 100,
     ]);
 
     $this->actingAs($customer, 'sanctum')
         ->getJson('/api/v1/customer/rewards')
         ->assertSuccessful()
-        ->assertJsonCount(1, 'data')
-        ->assertJsonPath('data.0.reward_rule.reward_title', 'Free Coffee')
-        ->assertJsonPath('data.0.reward_rule.points_required', 100)
-        ->assertJsonPath('data.0.status', 'pending');
+        ->assertJsonCount(2, 'data.history')
+        ->assertJsonPath('data.history.0.reward_rule.reward_title', 'Free Coffee');
 });
 
 it('staff can claim a pending reward', function () {

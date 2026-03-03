@@ -3,6 +3,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Bold, Italic, List, ListOrdered, Heading2, Heading3, Undo, Redo } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useEffect } from 'react';
 
 interface RichTextEditorProps {
     value: string;
@@ -27,6 +28,12 @@ export function RichTextEditor({ value, onChange, placeholder = 'Write your cont
             },
         },
     });
+
+    useEffect(() => {
+        if (editor && value !== editor.getHTML()) {
+            editor.commands.setContent(value, false);
+        }
+    }, [value, editor]);
 
     if (!editor) {
         return null;

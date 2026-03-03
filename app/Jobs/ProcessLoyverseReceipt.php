@@ -39,14 +39,20 @@ class ProcessLoyverseReceipt implements ShouldQueue
         $totalMoney = (float) ($this->receipt['total_money'] ?? 0);
         $loyverseCustomerId = $this->receipt['customer_id'] ?? null;
         $lineItems = $this->receipt['line_items'] ?? [];
-        $itemCount = (int) collect($lineItems)->sum('quantity');
+
+        $eligibleItems = collect($lineItems)->reject(
+            fn (array $item) => str_starts_with($item['sku'] ?? '', config('app.eligibility_sku_prefix'))
+        );
+
+        $eligibleTotalMoney = (float) $eligibleItems->sum('total_money');
+        $eligibleItemCount = (int) $eligibleItems->sum('quantity');
 
         $customer = $loyverseCustomerId
             ? User::where('loyverse_customer_id', $loyverseCustomerId)->first()
             : null;
 
-        $pointsEarned = $customer && $totalMoney > 0
-            ? $pointService->calculatePoints($totalMoney, $itemCount)
+        $pointsEarned = $customer && $eligibleTotalMoney > 0
+            ? $pointService->calculatePoints($eligibleTotalMoney, $eligibleItemCount)
             : 0;
 
         $purchase = Purchase::create([
@@ -63,7 +69,7 @@ class ProcessLoyverseReceipt implements ShouldQueue
             $pointService->earnPoints(
                 customer: $customer,
                 points: $pointsEarned,
-                description: "Earned {$pointsEarned} points from purchase #{$receiptId}".($itemCount > 0 ? " ({$itemCount} items)" : ''),
+                description: "Earned {$pointsEarned} points from purchase #{$receiptId}".($eligibleItemCount > 0 ? " ({$eligibleItemCount} items)" : ''),
                 purchase: $purchase,
             );
         }

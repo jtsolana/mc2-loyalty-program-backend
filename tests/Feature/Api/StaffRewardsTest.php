@@ -111,7 +111,7 @@ it('response includes reward rule details', function () {
         ->assertSuccessful()
         ->assertJsonStructure([
             'data' => [
-                ['id', 'status', 'points_deducted', 'expires_at', 'reward_rule' => ['name', 'reward_title', 'points_required']],
+                ['current_points', 'redeemable' => ['id', 'name', 'reward_title', 'points_required', 'redeemable_count']],
             ],
         ]);
 });
