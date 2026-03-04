@@ -69,7 +69,7 @@ export default function AdminDashboard({ stats, recentCustomers, monthlyPurchase
                         iconClassName="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
                     />
                     <StatCard
-                        title="Redemptions"
+                        title="Rewards Claimed"
                         value={stats.total_redemptions}
                         icon={TrendingUp}
                         iconClassName="bg-purple-500/10 text-purple-600 dark:text-purple-400"
@@ -82,7 +82,7 @@ export default function AdminDashboard({ stats, recentCustomers, monthlyPurchase
                         <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
                             <div className="mb-4 flex items-center gap-2">
                                 <BarChart3 className="size-5 text-blue-500" />
-                                <h3 className="font-semibold text-foreground">Monthly Revenue</h3>
+                                <h3 className="font-semibold text-foreground">Daily Revenue</h3>
                             </div>
                             <ReactApexChart
                                 options={revenueChartOptions}
@@ -95,7 +95,7 @@ export default function AdminDashboard({ stats, recentCustomers, monthlyPurchase
                         <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
                             <div className="mb-4 flex items-center gap-2">
                                 <Star className="size-5 text-purple-500" />
-                                <h3 className="font-semibold text-foreground">Points Earned per Month</h3>
+                                <h3 className="font-semibold text-foreground">Points Earned per Day</h3>
                             </div>
                             <ReactApexChart
                                 options={pointsChartOptions}

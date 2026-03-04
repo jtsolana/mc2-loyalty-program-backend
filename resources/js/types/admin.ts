@@ -85,7 +85,7 @@ export interface Promotion {
     excerpt: string;
     thumbnail_url: string | null;
     content: string;
-    type: 'promotion' | 'announcement';
+    type: 'popup-promotion' | 'promotion' | 'announcement';
     is_published: boolean;
     published_at: string | null;
     created_at: string;

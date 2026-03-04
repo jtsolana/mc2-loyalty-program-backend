@@ -19,7 +19,7 @@ class PromotionController extends Controller
             'hashed_id' => $promotion->hashed_id,
             'title' => $promotion->title,
             'excerpt' => $promotion->excerpt,
-            'thumbnail_url' => $promotion->thumbnail_url,
+            'thumbnail_url' => $promotion->thumbnail ? Storage::disk('public')->url($promotion->thumbnail) : null,
             'content' => $promotion->content,
             'type' => $promotion->type,
             'is_published' => $promotion->is_published,

@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\LoyaltyPoint;
 use App\Models\Purchase;
-use App\Models\Redemption;
+use App\Models\Reward;
 use App\Models\Role;
 use App\Models\User;
 use Inertia\Inertia;
@@ -23,7 +23,7 @@ class DashboardController extends Controller
                 : 0,
             'total_purchases' => Purchase::count(),
             'total_points_issued' => (int) LoyaltyPoint::sum('lifetime_points'),
-            'total_redemptions' => Redemption::count(),
+            'total_redemptions' => Reward::where('status', 'claimed')->count(),
         ];
 
         $recentCustomers = User::query()
@@ -47,8 +47,8 @@ class DashboardController extends Controller
             ]);
 
         $monthlyPurchases = Purchase::query()
-            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as count, SUM(total_amount) as revenue, SUM(points_earned) as points')
-            ->where('created_at', '>=', now()->subMonths(6))
+            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m-%d") as month, COUNT(*) as count, SUM(total_amount) as revenue, SUM(points_earned) as points')
+            ->where('created_at', '>=', now()->subMonths(1))
             ->groupBy('month')
             ->orderBy('month')
             ->get();
