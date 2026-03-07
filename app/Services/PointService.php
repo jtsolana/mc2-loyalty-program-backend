@@ -15,10 +15,10 @@ use App\Models\RewardRule;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
 use Kreait\Laravel\Firebase\Facades\Firebase;
-use Illuminate\Support\Facades\Log;
 
 class PointService
 {
@@ -92,7 +92,8 @@ class PointService
 
             foreach ($customer->devices as $device) {
 
-                $message = CloudMessage::withTarget('token', $device->fcm_token)
+                $message = CloudMessage::new()
+                    ->withToken($device->fcm_token)
                     ->withNotification(
                         Notification::create(
                             '🎉 Reward Unlocked!',
@@ -102,7 +103,7 @@ class PointService
                     ->withData([
                         'type' => 'reward',
                         'user_id' => (string) $customer->hashed_id,
-                        'deep_link' => "{$mobileScheme}rewards"
+                        'deep_link' => "{$mobileScheme}rewards",
                     ]);
 
                 try {
