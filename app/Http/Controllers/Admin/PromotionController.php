@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Jobs\SendPushNotificationToAllCustomer;
 
 class PromotionController extends Controller
 {
@@ -44,7 +45,21 @@ class PromotionController extends Controller
             $data['published_at'] = now();
         }
 
-        Promotion::create($data);
+        $promotion =Promotion::create($data);
+
+        if ($promotion->is_published) {
+            $mobileScheme = config('app.mobile_scheme');
+
+            SendPushNotificationToAllCustomer::dispatch(
+                "📣 {$promotion->title}",
+                $promotion->excerpt,
+                [
+                    'type' => 'promotion',
+                    'promotion_id' => (string) $promotion->hashed_id,
+                    'deep_link' => "{$mobileScheme}promotions/{$promotion->hashed_id}",
+                ]
+            )->onQueue('loyverse');
+        }
 
         return back()->with('success', 'Promotion created successfully.');
     }
