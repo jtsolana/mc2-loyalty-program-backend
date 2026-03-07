@@ -9,6 +9,9 @@ use App\Http\Controllers\Admin\RewardRuleController as AdminRewardRuleController
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
+use Kreait\Firebase\Messaging\CloudMessage;
+use Kreait\Firebase\Messaging\Notification;
+use Kreait\Laravel\Firebase\Facades\Firebase;
 
 Route::get('/email/verify/{id}/{hash}', VerifyEmailController::class)
     ->middleware(['signed', 'throttle:6,1'])
@@ -46,4 +49,22 @@ Route::middleware(['auth', 'verified', 'permission:roles.manage'])->prefix('admi
 
     Route::get('company-profile', [AdminCompanyProfileController::class, 'edit'])->name('company-profile.edit');
     Route::post('company-profile', [AdminCompanyProfileController::class, 'update'])->name('company-profile.update');
+
+    Route::get('firebase-messaging-test', function () {
+        $messaging = Firebase::messaging();
+
+        $message = CloudMessage::new()
+            ->withToken(env('TEST_DEVICE_FCM_TOKEN'))
+            ->withNotification(
+                Notification::create(
+                    '🎉 Reward Unlocked!',
+                    'You are now eligible to claim your reward!'
+                )
+            );
+        $messaging->send($message);
+
+        return 'Test notification sent!';
+    })->name('firebase-messaging-test');
 });
+
+
