@@ -14,11 +14,11 @@ use App\Models\Reward;
 use App\Models\RewardRule;
 use App\Models\User;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
 use Kreait\Laravel\Firebase\Facades\Firebase;
+use Illuminate\Support\Facades\Log;
 
 class PointService
 {
@@ -108,6 +108,7 @@ class PointService
                 try {
                     $messaging->send($message);
                 } catch (\Kreait\Firebase\Exception\Messaging\NotFound $e) {
+                    Log::warning($e->getMessage(), ['token' => $device->fcm_token]);
                     // Token expired or invalid
                     $device->delete();
                 }
