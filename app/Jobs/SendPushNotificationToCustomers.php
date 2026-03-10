@@ -10,22 +10,24 @@ use Kreait\Laravel\Firebase\Facades\Firebase;
 use App\Models\UserDevice;
 use Illuminate\Support\Facades\Log;
 
-class SendPushNotificationToAllCustomer implements ShouldQueue
+class SendPushNotificationToCustomers implements ShouldQueue
 {
     use Queueable;
 
     private string $title;
     private string $body;
     private array $data;
+    private ?int $userId;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(string $title, string $body, array $data = [])
+    public function __construct(string $title, string $body, array $data = [], ?int $userId = null)
     {
         $this->title = $title;
         $this->body = $body;
         $this->data = $data;
+        $this->userId = $userId;
     }
 
     /**
@@ -35,7 +37,11 @@ class SendPushNotificationToAllCustomer implements ShouldQueue
     {
         $messaging = Firebase::messaging();
 
-        $userDevices = UserDevice::all();
+        if($this->userId) {
+            $userDevices = UserDevice::where('user_id', $this->userId)->get();
+        } else {
+            $userDevices = UserDevice::all();
+        }
 
         foreach ($userDevices as $device) {
 

@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Jobs\SendPushNotificationToAllCustomer;
+use App\Jobs\SendPushNotificationToCustomers;
 
 class PromotionController extends Controller
 {
@@ -50,7 +50,7 @@ class PromotionController extends Controller
         if ($promotion->is_published) {
             $mobileScheme = config('app.mobile_scheme');
 
-            SendPushNotificationToAllCustomer::dispatch(
+            SendPushNotificationToCustomers::dispatch(
                 "📣 {$promotion->title}",
                 $promotion->excerpt,
                 [

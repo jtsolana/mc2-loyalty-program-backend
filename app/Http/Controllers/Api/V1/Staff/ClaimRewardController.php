@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use App\Models\RewardRule;
 use App\Services\PointService;
+use App\Jobs\SendPushNotificationToCustomers;
 
 class ClaimRewardController extends Controller
 {
@@ -73,6 +74,19 @@ class ClaimRewardController extends Controller
             'staff_id' => $request->user()->id,
             'claimed_at' => Carbon::now(),
         ]);
+
+        $mobileScheme = config('app.mobile_scheme');
+
+        SendPushNotificationToCustomers::dispatch(
+            "🎉 Reward Claimed!",
+            "You have successfully claimed: {$rewardRule->reward_title} ({$claimAmount}x)",
+            [
+                'type' => 'reward',
+                'user_id' => (string) $user->hashed_id,
+                'deep_link' => "{$mobileScheme}rewards",
+            ],
+            $user->id
+        )->onQueue('loyverse');
 
         return response()->json([
             'message' => 'Reward successfully claimed.',
