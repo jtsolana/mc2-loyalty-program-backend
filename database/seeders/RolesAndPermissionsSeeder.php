@@ -45,7 +45,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'description' => 'Can process point transactions',
                 'permissions' => [
                     'points.view', 'points.earn', 'points.redeem',
-                    'customers.view',
+                    'customers.view', 'customers.manage',
                 ],
             ],
             [

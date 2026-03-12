@@ -12,6 +12,9 @@ export type User = {
 
 export type Auth = {
     user: User;
+    can: {
+        roles_manage: boolean;
+    };
 };
 
 export type TwoFactorSetupData = {

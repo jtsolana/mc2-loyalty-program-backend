@@ -15,7 +15,9 @@ import type { NavItem } from '@/types';
 import AppLogo from './app-logo';
 import admin from '@/routes/admin';
 
-const adminNavItems: NavItem[] = [
+const RESTRICTED_NAV_ITEMS = new Set(['Users', 'Point Rules', 'Reward Rules', 'Company Profile']);
+
+const allAdminNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: admin.dashboard(),
@@ -54,6 +56,12 @@ const adminNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { auth } = usePage().props;
+    const canManageRoles = auth.can.roles_manage;
+    const adminNavItems = canManageRoles
+        ? allAdminNavItems
+        : allAdminNavItems.filter((item) => !RESTRICTED_NAV_ITEMS.has(item.title));
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
