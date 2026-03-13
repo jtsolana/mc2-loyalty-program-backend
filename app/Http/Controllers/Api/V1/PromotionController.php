@@ -14,11 +14,11 @@ class PromotionController extends Controller
     {
         $query = Promotion::query()->published()->latest();
 
-        if ($request->filled('type') && in_array($request->input('type'), ['promotion', 'announcement'])) {
+        if ($request->filled('type')) {
             $query->where('type', $request->input('type'));
         }
 
-        $promotions = $query->paginate(20);
+        $promotions = $query->paginate(10);
 
         return response()->json([
             'data' => PromotionResource::collection($promotions),

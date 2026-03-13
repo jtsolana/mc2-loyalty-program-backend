@@ -3,19 +3,19 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendPushNotificationToCustomers;
 use App\Models\Promotion;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Jobs\SendPushNotificationToCustomers;
 
 class PromotionController extends Controller
 {
     public function index(): Response
     {
-        $promotions = Promotion::latest()->paginate(20)->through(fn ($promotion) => [
+        $promotions = Promotion::latest()->paginate(10)->through(fn ($promotion) => [
             'id' => $promotion->id,
             'hashed_id' => $promotion->hashed_id,
             'title' => $promotion->title,
@@ -23,8 +23,10 @@ class PromotionController extends Controller
             'thumbnail_url' => $promotion->thumbnail ? Storage::disk('public')->url($promotion->thumbnail) : null,
             'content' => $promotion->content,
             'type' => $promotion->type,
+            'publish_status' => $promotion->publish_status,
             'is_published' => $promotion->is_published,
             'published_at' => $promotion->published_at?->toDateTimeString(),
+            'expires_at' => $promotion->expires_at?->toDateTimeString(),
             'created_at' => $promotion->created_at?->toDateString(),
         ]);
 
@@ -41,24 +43,10 @@ class PromotionController extends Controller
             $data['thumbnail'] = $request->file('thumbnail')->store('promotions', 'public');
         }
 
-        if ($data['is_published'] && empty($data['published_at'])) {
-            $data['published_at'] = now();
-        }
-
-        $promotion =Promotion::create($data);
+        $promotion = Promotion::create($this->resolvePublishData($data));
 
         if ($promotion->is_published) {
-            $mobileScheme = config('app.mobile_scheme');
-
-            SendPushNotificationToCustomers::dispatch(
-                "📣 {$promotion->title}",
-                $promotion->excerpt,
-                [
-                    'type' => 'promotion',
-                    'promotion_id' => (string) $promotion->hashed_id,
-                    'deep_link' => "{$mobileScheme}promotions/{$promotion->hashed_id}",
-                ]
-            )->onQueue('loyverse');
+            $this->dispatchPushNotification($promotion);
         }
 
         return back()->with('success', 'Promotion created successfully.');
@@ -75,13 +63,12 @@ class PromotionController extends Controller
             $data['thumbnail'] = $request->file('thumbnail')->store('promotions', 'public');
         }
 
-        if ($data['is_published'] && ! $promotion->published_at) {
-            $data['published_at'] = now();
-        } elseif (! $data['is_published']) {
-            $data['published_at'] = null;
-        }
+        $wasPublished = $promotion->is_published;
+        $promotion->update($this->resolvePublishData($data));
 
-        $promotion->update($data);
+        if (! $wasPublished && $promotion->fresh()->is_published) {
+            $this->dispatchPushNotification($promotion);
+        }
 
         return back()->with('success', 'Promotion updated successfully.');
     }
@@ -97,6 +84,43 @@ class PromotionController extends Controller
         return back()->with('success', 'Promotion deleted.');
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function resolvePublishData(array $data): array
+    {
+        return match ($data['publish_status']) {
+            'published' => array_merge($data, [
+                'is_published' => true,
+                'published_at' => now(),
+            ]),
+            'scheduled' => array_merge($data, [
+                'is_published' => false,
+                'published_at' => $data['published_at'],
+            ]),
+            default => array_merge($data, [
+                'is_published' => false,
+                'published_at' => null,
+            ]),
+        };
+    }
+
+    private function dispatchPushNotification(Promotion $promotion): void
+    {
+        $mobileScheme = config('app.mobile_scheme');
+
+        SendPushNotificationToCustomers::dispatch(
+            "📣 {$promotion->title}",
+            $promotion->excerpt,
+            [
+                'type' => 'promotion',
+                'promotion_id' => (string) $promotion->hashed_id,
+                'deep_link' => "{$mobileScheme}promotions/{$promotion->hashed_id}",
+            ]
+        )->onQueue('loyverse');
+    }
+
     /** @return array<string, mixed> */
     private function validatePromotion(Request $request): array
     {
@@ -109,8 +133,10 @@ class PromotionController extends Controller
                 'string',
                 'in:popup-promotion,promotion,announcement',
             ],
+            'publish_status' => ['required', 'string', 'in:draft,published,scheduled'],
+            'published_at' => ['nullable', 'date', 'required_if:publish_status,scheduled', 'after:now'],
+            'expires_at' => ['nullable', 'date', 'after:now'],
             'thumbnail' => ['nullable', 'image', 'max:2048'],
-            'is_published' => ['required', 'boolean'],
         ]);
     }
 }

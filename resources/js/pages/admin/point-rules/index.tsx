@@ -269,10 +269,12 @@ export default function PointRulesIndex({ rules, ruleTypes }: Props) {
                             <p className="text-sm text-muted-foreground">Configure how customers earn points per purchase</p>
                         </div>
                     </div>
-                    <Button size="sm" onClick={openCreate}>
-                        <Plus className="size-4" />
-                        Add Rule
-                    </Button>
+                    {(rules.length === 0) && (
+                        <Button onClick={openCreate}>
+                            <Plus className="size-4" />
+                            Create Rule
+                        </Button>
+                    )}
                 </div>
 
                 <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm dark:border-blue-800 dark:bg-blue-900/20">
@@ -339,14 +341,14 @@ export default function PointRulesIndex({ rules, ruleTypes }: Props) {
                                         <Button variant="ghost" size="sm" onClick={() => openEdit(row as unknown as PointRule)}>
                                             <Pencil className="size-4" />
                                         </Button>
-                                        <Button
+                                        {/* <Button
                                             variant="ghost"
                                             size="sm"
                                             className="text-destructive hover:text-destructive"
                                             onClick={() => handleDelete(row as unknown as PointRule)}
                                         >
                                             <Trash2 className="size-4" />
-                                        </Button>
+                                        </Button> */}
                                     </div>
                                 ),
                             },

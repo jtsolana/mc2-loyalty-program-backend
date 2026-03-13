@@ -28,4 +28,13 @@ class ProfileController extends Controller
             'data' => new UserResource($request->user()->fresh()->load('roles.permissions', 'loyaltyPoint')),
         ]);
     }
+
+    public function destroy(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $user->devices()->delete();
+        $user->delete();
+
+        return response()->json(['message' => 'Account deleted successfully.']);
+    }
 }

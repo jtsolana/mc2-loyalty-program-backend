@@ -1,9 +1,11 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { BarChart3, Eye, ShoppingBag, Star, TrendingUp, Users } from 'lucide-react';
 import ReactApexChart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
 import { StatCard } from '@/components/admin/stat-card';
 import { DataTable } from '@/components/admin/data-table';
+import { DateRangePicker } from '@/components/admin/date-range-picker';
+import type { DateRange } from '@/components/admin/date-range-picker';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, CustomerRow, DashboardStats, MonthlyPurchase } from '@/types';
@@ -13,14 +15,19 @@ interface Props {
     stats: DashboardStats;
     recentCustomers: CustomerRow[];
     monthlyPurchases: MonthlyPurchase[];
+    filters: { start_date: string; end_date: string };
 }
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Admin Dashboard', href: admin.dashboard().url }];
 
-export default function AdminDashboard({ stats, recentCustomers, monthlyPurchases }: Props) {
+export default function AdminDashboard({ stats, recentCustomers, monthlyPurchases, filters }: Props) {
     const chartCategories = monthlyPurchases.map((m) => m.month);
     const revenueData = monthlyPurchases.map((m) => parseFloat(m.revenue ?? '0'));
     const pointsData = monthlyPurchases.map((m) => m.points ?? 0);
+
+    function handleApply(range: DateRange) {
+        router.get(admin.dashboard().url, { start_date: range.start, end_date: range.end }, { preserveScroll: true });
+    }
 
     const revenueChartOptions: ApexOptions = {
         chart: { type: 'area', toolbar: { show: false }, fontFamily: 'inherit' },
@@ -48,10 +55,20 @@ export default function AdminDashboard({ stats, recentCustomers, monthlyPurchase
             <Head title="Admin Dashboard" />
 
             <div className="flex flex-col gap-6 p-4 md:p-6">
+                {/* Header with date range */}
+                <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-foreground">Overview</h2>
+                    <DateRangePicker
+                        value={{ start: filters.start_date, end: filters.end_date }}
+                        onChange={() => {}}
+                        onApply={handleApply}
+                    />
+                </div>
+
                 {/* Stats */}
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <StatCard
-                        title="Total Customers"
+                        title="Customers Registered"
                         value={stats.total_customers}
                         icon={Users}
                         iconClassName="bg-blue-500/10 text-blue-600 dark:text-blue-400"

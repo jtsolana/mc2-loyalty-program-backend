@@ -26,9 +26,10 @@ class PointController extends Controller
     {
         $transactions = $request->user()
             ->pointTransactions()
+            ->with('reference')
             ->orderByDesc('id')
             ->latest()
-            ->paginate(20);
+            ->paginate(10);
 
         return response()->json([
             'data' => PointTransactionResource::collection($transactions),

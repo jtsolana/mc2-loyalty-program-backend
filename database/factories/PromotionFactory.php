@@ -17,16 +17,28 @@ class PromotionFactory extends Factory
             'thumbnail' => null,
             'content' => '<p>'.fake()->paragraphs(3, true).'</p>',
             'type' => fake()->randomElement(['promotion', 'announcement']),
+            'publish_status' => 'published',
             'is_published' => true,
             'published_at' => now(),
+            'expires_at' => null,
         ];
     }
 
     public function unpublished(): static
     {
         return $this->state([
+            'publish_status' => 'draft',
             'is_published' => false,
             'published_at' => null,
+        ]);
+    }
+
+    public function scheduled(): static
+    {
+        return $this->state([
+            'publish_status' => 'scheduled',
+            'is_published' => false,
+            'published_at' => now()->addDay(),
         ]);
     }
 

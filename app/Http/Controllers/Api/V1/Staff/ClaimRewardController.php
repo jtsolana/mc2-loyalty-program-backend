@@ -5,14 +5,13 @@ namespace App\Http\Controllers\Api\V1\Staff;
 use App\Enums\RewardStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\RewardResource;
-use App\Models\Reward;
+use App\Jobs\SendPushNotificationToCustomers;
+use App\Models\RewardRule;
 use App\Models\User;
+use App\Services\PointService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use App\Models\RewardRule;
-use App\Services\PointService;
-use App\Jobs\SendPushNotificationToCustomers;
 
 class ClaimRewardController extends Controller
 {
@@ -20,10 +19,15 @@ class ClaimRewardController extends Controller
     {
         $user->load([
             'loyaltyPoint',
-            'rewards' => fn ($q) => $q->whereIn('status', [RewardStatus::Claimed->value, RewardStatus::Expired->value])
-                ->with('rewardRule')
-                ->latest()
+            'rewards' => fn ($q) => $q->whereDate('claimed_at', Carbon::now()->toDateString())->latest(),
         ]);
+
+        $rewardRedemptionLimitPerDay = config('app.reward_redemption_limit_per_day', 1);
+        if ($user->rewards->count() >= $rewardRedemptionLimitPerDay) {
+            return response()->json([
+                'message' => "Only {$rewardRedemptionLimitPerDay} reward(s) can be claimed per day. This customer has already claimed a reward today.",
+            ], 422);
+        }
 
         $totalPoints = $user->loyaltyPoint?->total_points ?? 0;
 
@@ -42,7 +46,7 @@ class ClaimRewardController extends Controller
         return response()->json([
             'data' => [
                 'current_points' => $totalPoints,
-                'redeemable' => $redeemable
+                'redeemable' => $redeemable,
             ],
         ]);
     }
@@ -51,22 +55,30 @@ class ClaimRewardController extends Controller
     {
         $this->validateClaim($request);
 
-        $claimAmount = $request->input('claim_amount');
+        $rewardRedemptionLimitPerDay = config('app.reward_redemption_limit_per_day', 1);
+        $rewardsClaimedToday = $user->rewards()->whereDate('claimed_at', Carbon::now()->toDateString())->count();
+        if ($rewardsClaimedToday >= $rewardRedemptionLimitPerDay) {
+            return response()->json([
+                'message' => "Only {$rewardRedemptionLimitPerDay} reward(s) can be claimed per day. This customer has already claimed a reward today.",
+            ], 422);
+        }
+
+        $claimAmount = $request->input('claim_amount') ?? 1;
         $rewardRule = RewardRule::findOrFail($request->input('reward_rule_id'));
 
         if ($rewardRule->is_active !== true) {
             return response()->json([
-                'message' => "Reward cannot be claimed. Current status is not active.",
+                'message' => 'Reward cannot be claimed. Current status is not active.',
             ], 422);
         }
-        
-        if($user->loyaltyPoint->total_points < ($rewardRule->points_required * $claimAmount)) {
+
+        if ($user->loyaltyPoint->total_points < ($rewardRule->points_required * $claimAmount)) {
             return response()->json([
-                'message' => "Insufficient points to claim reward.",
+                'message' => 'Insufficient points to claim reward.',
             ], 422);
         }
-        
-        $pointService = new PointService();
+
+        $pointService = new PointService;
         $reward = $pointService->claimReward($user, $rewardRule, $user->loyaltyPoint, $claimAmount);
 
         $reward->update([
@@ -78,7 +90,7 @@ class ClaimRewardController extends Controller
         $mobileScheme = config('app.mobile_scheme');
 
         SendPushNotificationToCustomers::dispatch(
-            "🎉 Reward Claimed!",
+            '🎉 Reward Claimed!',
             "You have successfully claimed: {$rewardRule->reward_title} ({$claimAmount}x)",
             [
                 'type' => 'reward',

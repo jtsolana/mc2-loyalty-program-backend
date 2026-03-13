@@ -34,6 +34,7 @@ Route::prefix('v1')->group(function () {
         Route::get('points', [PointController::class, 'show']);
         Route::get('points/history', [PointController::class, 'history']);
         Route::get('rewards', [RewardController::class, 'index']);
+        Route::post('deactivate', [ProfileController::class, 'destroy']);
     });
 
     // Route::middleware(['auth:sanctum', 'permission:points.earn'])->prefix('staff')->group(function () {

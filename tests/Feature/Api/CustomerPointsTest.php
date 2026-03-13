@@ -3,6 +3,8 @@
 use App\Enums\RewardStatus;
 use App\Models\LoyaltyPoint;
 use App\Models\PointRule;
+use App\Models\PointTransaction;
+use App\Models\Purchase;
 use App\Models\Reward;
 use App\Models\RewardRule;
 use App\Models\Role;
@@ -47,6 +49,48 @@ it('customer can view point transaction history', function () {
         ->getJson('/api/v1/customer/points/history')
         ->assertSuccessful()
         ->assertJsonStructure(['data', 'meta']);
+});
+
+it('point history includes purchase_items when reference is a purchase', function () {
+    $customer = makeCustomer();
+
+    $lineItems = [
+        ['item_id' => 'abc', 'name' => 'Coffee', 'quantity' => 1, 'total_money' => 150.00],
+        ['item_id' => 'def', 'name' => 'Cake', 'quantity' => 2, 'total_money' => 200.00],
+    ];
+
+    $purchase = Purchase::factory()->create([
+        'user_id' => $customer->id,
+        'loyverse_payload' => ['receipt_number' => 'R-001', 'line_items' => $lineItems],
+    ]);
+
+    PointTransaction::factory()->create([
+        'user_id' => $customer->id,
+        'reference_type' => Purchase::class,
+        'reference_id' => $purchase->id,
+    ]);
+
+    $this->actingAs($customer, 'sanctum')
+        ->getJson('/api/v1/customer/points/history')
+        ->assertSuccessful()
+        ->assertJsonCount(2, 'data.0.purchase_items')
+        ->assertJsonPath('data.0.purchase_items.0.name', 'Coffee')
+        ->assertJsonPath('data.0.purchase_items.1.name', 'Cake');
+});
+
+it('point history returns empty purchase_items when reference is not a purchase', function () {
+    $customer = makeCustomer();
+
+    PointTransaction::factory()->create([
+        'user_id' => $customer->id,
+        'reference_type' => null,
+        'reference_id' => null,
+    ]);
+
+    $this->actingAs($customer, 'sanctum')
+        ->getJson('/api/v1/customer/points/history')
+        ->assertSuccessful()
+        ->assertJsonPath('data.0.purchase_items', []);
 });
 
 it('customer can view their profile', function () {

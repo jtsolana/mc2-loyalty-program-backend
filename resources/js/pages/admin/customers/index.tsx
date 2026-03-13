@@ -42,7 +42,7 @@ export default function CustomersIndex({ customers, filters }: Props) {
                         </div>
                         <div>
                             <h1 className="text-xl font-bold text-foreground">Customers</h1>
-                            <p className="text-sm text-muted-foreground">{customers.total} total registered customers</p>
+                            <p className="text-sm text-muted-foreground font-black">{customers.total} total registered customers</p>
                         </div>
                     </div>
 

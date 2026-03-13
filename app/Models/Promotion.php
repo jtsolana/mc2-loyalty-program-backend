@@ -18,8 +18,10 @@ class Promotion extends Model
         'thumbnail',
         'content',
         'type',
+        'publish_status',
         'is_published',
         'published_at',
+        'expires_at',
     ];
 
     protected function casts(): array
@@ -27,12 +29,14 @@ class Promotion extends Model
         return [
             'is_published' => 'boolean',
             'published_at' => 'datetime',
+            'expires_at' => 'datetime',
         ];
     }
 
     /** @param Builder<Promotion> $query */
     public function scopePublished(Builder $query): void
     {
-        $query->where('is_published', true);
+        $query->where('is_published', true)
+            ->where(fn (Builder $q) => $q->whereNull('expires_at')->orWhere('expires_at', '>=', now()));
     }
 }

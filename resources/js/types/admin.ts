@@ -12,6 +12,14 @@ export interface CustomerRow {
     hashed_id: string;
 }
 
+export interface PurchaseLineItem {
+    item_name: string;
+    sku: string | null;
+    quantity: number;
+    price: number;
+    total_money: number;
+}
+
 export interface Purchase {
     id: number;
     loyverse_receipt_id: string;
@@ -19,6 +27,7 @@ export interface Purchase {
     points_earned: number;
     status: string;
     created_at: string;
+    loyverse_payload: { line_items?: PurchaseLineItem[]; [key: string]: unknown } | null;
 }
 
 export interface PointTransaction {
@@ -39,6 +48,7 @@ export interface UserRow {
     phone: string | null;
     roles: string[];
     created_at: string;
+    deleted_at: string | null;
 }
 
 export interface Role {
@@ -86,8 +96,10 @@ export interface Promotion {
     thumbnail_url: string | null;
     content: string;
     type: 'popup-promotion' | 'promotion' | 'announcement';
+    publish_status: 'draft' | 'published' | 'scheduled';
     is_published: boolean;
     published_at: string | null;
+    expires_at: string | null;
     created_at: string;
 }
 

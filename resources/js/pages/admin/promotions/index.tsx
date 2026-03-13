@@ -1,5 +1,6 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { Image, Megaphone, Pencil, Plus, Tag, Trash2 } from 'lucide-react';
+
+import { AlertTriangle, CalendarClock, CheckCircle2, Clock, FileText, Image, Megaphone, Pencil, Plus, Tag, Trash2 } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { RichTextEditor } from '@/components/admin/rich-text-editor';
 import { DataTable } from '@/components/admin/data-table';
@@ -14,113 +15,191 @@ import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, Paginator, Promotion } from '@/types';
 import admin from '@/routes/admin';
 import { DialogDescription } from '@radix-ui/react-dialog';
+import { cn } from '@/lib/utils';
 
 interface Props {
-  promotions: Paginator<Promotion>;
+    promotions: Paginator<Promotion>;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-  { title: 'Admin', href: admin.dashboard().url },
-  { title: 'Promotions', href: admin.promotions.index().url },
+    { title: 'Admin', href: admin.dashboard().url },
+    { title: 'Promotions', href: admin.promotions.index().url },
 ];
 
+type PublishStatus = 'draft' | 'published' | 'scheduled';
+
 type PromotionFormData = {
-  title: string;
-  excerpt: string;
-  content: string;
-  type: string;
-  thumbnail: File | null;
-  is_published: boolean;
+    title: string;
+    excerpt: string;
+    content: string;
+    type: string;
+    thumbnail: File | null;
+    publish_status: PublishStatus;
+    published_at: string;
+    expires_at: string;
 };
 
-function PromotionFormModal({
-  open,
-  onClose,
-  editing,
+function DateTimePicker({
+    id,
+    value,
+    onChange,
+    min,
 }: {
-  open: boolean;
-  onClose: () => void;
-  editing: Promotion | null;
+    id?: string;
+    value: string;
+    onChange: (v: string) => void;
+    min?: string;
 }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(editing?.thumbnail_url ?? null);
-  const [thumbnailChanged, setThumbnailChanged] = useState(false);
+    const [datePart = '', timePart = ''] = value ? value.split('T') : [];
+    const minDate = min?.split('T')[0] ?? '';
+    const minTime = min?.split('T')[1] ?? '00:00';
 
-  const { data, setData, post, processing, errors, reset } = useForm<PromotionFormData>({
-      title: editing?.title ?? '',
-      excerpt: editing?.excerpt ?? '',
-      content: editing?.content ?? '',
-      type: editing?.type ?? 'promotion',
-      thumbnail: null,
-      is_published: editing?.is_published ?? false,
-  });
+    const timeSlots = Array.from({ length: 24 * 12 }, (_, i) => {
+        const h = Math.floor(i / 12).toString().padStart(2, '0');
+        const m = ((i % 12) * 5).toString().padStart(2, '0');
+        return `${h}:${m}`;
+    });
 
-  // Sync form state when editing prop changes
-  useEffect(() => {
-      setData({
-          title: editing?.title ?? '',
-          excerpt: editing?.excerpt ?? '',
-          content: editing?.content ?? '',
-          type: editing?.type ?? 'promotion',
-          thumbnail: null,
-          is_published: editing?.is_published ?? false,
-      });
-      setThumbnailChanged(false);
-  }, [editing]);
+    const availableSlots = datePart === minDate ? timeSlots.filter((t) => t > minTime) : timeSlots;
 
-  // Sync thumbnail preview when editing prop changes
-  useEffect(() => {
-      setThumbnailPreview(editing?.thumbnail_url ?? null);
-  }, [editing]);
+    const handleDate = (d: string) => {
+        const t = timePart || availableSlots[0] || '00:00';
+        onChange(d ? `${d}T${t}` : '');
+    };
 
-  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0] ?? null;
-      setData('thumbnail', file);
-      setThumbnailChanged(true);
-      if (file) {
-          setThumbnailPreview(URL.createObjectURL(file));
-      }
-  };
+    const handleTime = (t: string) => {
+        onChange(datePart ? `${datePart}T${t}` : '');
+    };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const submitUrl = editing
-        ? admin.promotions.update({ promotion: editing.hashed_id }).url
-        : admin.promotions.store().url;
+    return (
+        <div className="flex gap-2 max-w-[290px]">
+            <Input id={id} type="date" value={datePart} min={minDate} onChange={(e) => handleDate(e.target.value)} className="flex-1 w-full" />
+            <Select value={timePart} onValueChange={handleTime} disabled={!datePart}>
+                <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Time" />
+                </SelectTrigger>
+                <SelectContent>
+                    {availableSlots.map((slot) => (
+                        <SelectItem key={slot} value={slot}>
+                            {slot}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
+    );
+}
 
-    if (editing) {
-        // Only include thumbnail if user selected a new file
-        const submitData = {
-            title: data.title,
-            excerpt: data.excerpt,
-            content: data.content,
-            type: data.type,
-            is_published: data.is_published,
-            ...(thumbnailChanged && { thumbnail: data.thumbnail }),
-        };
+function StatusBadge({ status, publishedAt, expiresAt }: { status: PublishStatus; publishedAt: string | null; expiresAt: string | null }) {
+    if (status === 'published' && expiresAt && new Date(expiresAt) < new Date()) {
+        return (
+            <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
+                <AlertTriangle className="size-3" />
+                Expired
+            </span>
+        );
+    }
+    if (status === 'published') {
+        return (
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                <CheckCircle2 className="size-3" />
+                Published
+            </span>
+        );
+    }
+    if (status === 'scheduled') {
+        return (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                <CalendarClock className="size-3" />
+                {publishedAt ? publishedAt : 'Scheduled'}
+            </span>
+        );
+    }
+    return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+            <FileText className="size-3" />
+            Draft
+        </span>
+    );
+}
 
-        // Use router.post for custom data with FormData
-        const formData = new FormData();
-        Object.entries(submitData).forEach(([key, value]) => {
-            if (value instanceof File) {
-                formData.append(key, value);
-            } else if (typeof value === 'boolean') {
-                formData.append(key, value ? '1' : '0');
-            } else if (value) {
-                formData.append(key, String(value));
-            }
+function PromotionFormModal({
+    open,
+    onClose,
+    editing,
+}: {
+    open: boolean;
+    onClose: () => void;
+    editing: Promotion | null;
+}) {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(editing?.thumbnail_url ?? null);
+    const [thumbnailChanged, setThumbnailChanged] = useState(false);
+    const [isNonExpiring, setIsNonExpiring] = useState(editing ? !editing.expires_at : true);
+    const minDateTime = new Date(Date.now() + 60_000).toISOString().slice(0, 16);
+    const toDateTimeLocal = (value: string | null | undefined): string =>
+        value ? value.replace(' ', 'T').slice(0, 16) : '';
+
+    const { data, setData, post, transform, processing, errors, reset } = useForm<PromotionFormData>({
+        title: editing?.title ?? '',
+        excerpt: editing?.excerpt ?? '',
+        content: editing?.content ?? '',
+        type: editing?.type ?? 'promotion',
+        thumbnail: null,
+        publish_status: editing?.publish_status ?? 'draft',
+        published_at: toDateTimeLocal(editing?.published_at),
+        expires_at: toDateTimeLocal(editing?.expires_at),
+    });
+
+    useEffect(() => {
+        setData({
+            title: editing?.title ?? '',
+            excerpt: editing?.excerpt ?? '',
+            content: editing?.content ?? '',
+            type: editing?.type ?? 'promotion',
+            thumbnail: null,
+            publish_status: editing?.publish_status ?? 'draft',
+            published_at: toDateTimeLocal(editing?.published_at),
+            expires_at: toDateTimeLocal(editing?.expires_at),
         });
+        setThumbnailChanged(false);
+        setIsNonExpiring(editing ? !editing.expires_at : true);
+    }, [editing]);
 
-        router.post(submitUrl, formData as any, {
-            onSuccess: () => {
-                reset();
-                setThumbnailChanged(false);
-                onClose();
-            },
-        });
-    } else {
-        // For new promotions, include all data including thumbnail
+    useEffect(() => {
+        setThumbnailPreview(editing?.thumbnail_url ?? null);
+    }, [editing]);
+
+    const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] ?? null;
+        setData('thumbnail', file);
+        setThumbnailChanged(true);
+        if (file) {
+            setThumbnailPreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        const submitUrl = editing
+            ? admin.promotions.update({ promotion: editing.hashed_id }).url
+            : admin.promotions.store().url;
+
+        const nonExpiring = isNonExpiring;
+        const thumbChanged = thumbnailChanged;
+
+        transform((d) => ({
+            title: d.title,
+            excerpt: d.excerpt,
+            content: d.content,
+            type: d.type,
+            publish_status: d.publish_status,
+            published_at: d.publish_status === 'scheduled' ? d.published_at : '',
+            expires_at: nonExpiring ? '' : d.expires_at,
+            ...(thumbChanged ? { thumbnail: d.thumbnail } : {}),
+        }));
+
         post(submitUrl, {
             forceFormData: true,
             onSuccess: () => {
@@ -129,252 +208,324 @@ function PromotionFormModal({
                 onClose();
             },
         });
-    }
-  };
+    };
 
-  return (
-      <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-          <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-2xl">
-              <DialogHeader className="shrink-0">
-                  <DialogTitle>{editing ? 'Edit Promotion' : 'Create Promotion'}</DialogTitle>
-                  <DialogDescription>
-                      {editing ? 'Update the promotion details and publish when ready.' : 'Create a new promotion to display in the customer app.'}
-                  </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4 overflow-y-auto pr-1">
-                  <div className="grid gap-1.5">
-                      <Label htmlFor="promo-title">Title</Label>
-                      <Input
-                          id="promo-title"
-                          value={data.title}
-                          onChange={(e) => setData('title', e.target.value)}
-                          placeholder="e.g. Summer Sale — 20% Off All Drinks"
-                          required
-                      />
-                      {errors.title && <p className="text-xs text-destructive">{errors.title}</p>}
-                  </div>
+    const publishOptions: { value: PublishStatus; label: string; icon: React.ReactNode; description: string }[] = [
+        { value: 'draft', label: 'Draft', icon: <FileText className="size-4" />, description: 'Save without publishing' },
+        { value: 'published', label: 'Publish Now', icon: <CheckCircle2 className="size-4" />, description: 'Make visible immediately' },
+        { value: 'scheduled', label: 'Schedule', icon: <Clock className="size-4" />, description: 'Go live at a future date & time' },
+    ];
 
-                  <div className="grid gap-1.5">
-                      <Label htmlFor="promo-excerpt">Excerpt</Label>
-                      <Input
-                          id="promo-excerpt"
-                          value={data.excerpt}
-                          onChange={(e) => setData('excerpt', e.target.value)}
-                          placeholder="A short summary shown in listings..."
-                          required
-                      />
-                      {errors.excerpt && <p className="text-xs text-destructive">{errors.excerpt}</p>}
-                  </div>
+    return (
+        <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+            <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-4xl">
+                <DialogHeader className="shrink-0">
+                    <DialogTitle>{editing ? 'Edit Promotion' : 'Create Promotion'}</DialogTitle>
+                    <DialogDescription>
+                        {editing ? 'Update the promotion details and publish when ready.' : 'Create a new promotion to display in the customer app.'}
+                    </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4 overflow-y-auto pr-1">
+                    <div className="grid gap-1.5">
+                        <Label htmlFor="promo-title">Title</Label>
+                        <Input
+                            id="promo-title"
+                            value={data.title}
+                            onChange={(e) => setData('title', e.target.value)}
+                            placeholder="e.g. Summer Sale — 20% Off All Drinks"
+                            required
+                        />
+                        {errors.title && <p className="text-xs text-destructive">{errors.title}</p>}
+                    </div>
 
-                  <div className="grid gap-1.5">
-                      <Label htmlFor="promo-type">Type</Label>
-                      <Select value={data.type} onValueChange={(v) => setData('type', v)}>
-                          <SelectTrigger id="promo-type">
-                              <SelectValue placeholder="Select type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="promotion">Promotion</SelectItem>
-                              <SelectItem value="popup-promotion">Popup Promotion</SelectItem>
-                              <SelectItem value="announcement">Announcement</SelectItem>
-                          </SelectContent>
-                      </Select>
-                      {errors.type && <p className="text-xs text-destructive">{errors.type}</p>}
-                  </div>
+                    <div className="grid gap-1.5">
+                        <Label htmlFor="promo-excerpt">Excerpt</Label>
+                        <Input
+                            id="promo-excerpt"
+                            value={data.excerpt}
+                            onChange={(e) => setData('excerpt', e.target.value)}
+                            placeholder="A short summary shown in listings..."
+                            required
+                        />
+                        {errors.excerpt && <p className="text-xs text-destructive">{errors.excerpt}</p>}
+                    </div>
 
-                  <div className="grid gap-1.5">
-                      <Label>Thumbnail</Label>
-                      {thumbnailPreview && (
-                          <img
-                              src={thumbnailPreview}
-                              alt="Thumbnail preview"
-                              className="h-60 w-full rounded-md border border-border object-cover"
-                          />
-                      )}
-                      <Input
-                          ref={fileInputRef}
-                          id="promo-thumbnail"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleThumbnailChange}
-                          className="cursor-pointer"
-                      />
-                      {errors.thumbnail && <p className="text-xs text-destructive">{errors.thumbnail}</p>}
-                  </div>
+                    <div className="grid gap-1.5">
+                        <Label htmlFor="promo-type">Type</Label>
+                        <Select value={data.type} onValueChange={(v) => setData('type', v)}>
+                            <SelectTrigger id="promo-type">
+                                <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="promotion">Promotion</SelectItem>
+                                <SelectItem value="popup-promotion">Popup Promotion</SelectItem>
+                                <SelectItem value="announcement">Announcement</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        {errors.type && <p className="text-xs text-destructive">{errors.type}</p>}
+                    </div>
 
-                  <div className="grid gap-1.5">
-                      <Label>Content</Label>
-                      <RichTextEditor
-                          key={editing?.id ?? 'new'}
-                          value={data.content}
-                          onChange={(v) => setData('content', v)}
-                          placeholder="Write your full content here..."
-                      />
-                      {errors.content && <p className="text-xs text-destructive">{errors.content}</p>}
-                  </div>
+                    <div className="grid gap-1.5">
+                        <Label>Thumbnail</Label>
+                        {thumbnailPreview && (
+                            <img
+                                src={thumbnailPreview}
+                                alt="Thumbnail preview"
+                                className="h-60 w-full rounded-md border border-border object-cover"
+                            />
+                        )}
+                        <Input
+                            ref={fileInputRef}
+                            id="promo-thumbnail"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleThumbnailChange}
+                            className="cursor-pointer"
+                        />
+                        {errors.thumbnail && <p className="text-xs text-destructive">{errors.thumbnail}</p>}
+                    </div>
 
-                  <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
-                      <Checkbox
-                          id="promo-published"
-                          checked={data.is_published}
-                          onCheckedChange={(checked) => setData('is_published', !!checked)}
-                      />
-                      <Label htmlFor="promo-published" className="cursor-pointer">
-                          Published (visible to customers in the app)
-                      </Label>
-                  </div>
+                    <div className="grid gap-1.5">
+                        <Label>Content</Label>
+                        <RichTextEditor
+                            key={editing?.id ?? 'new'}
+                            value={data.content}
+                            onChange={(v) => setData('content', v)}
+                            placeholder="Write your full content here..."
+                        />
+                        {errors.content && <p className="text-xs text-destructive">{errors.content}</p>}
+                    </div>
 
-                  <div className="flex shrink-0 justify-end gap-2 pt-2">
-                      <Button type="button" variant="outline" onClick={onClose}>
-                          Cancel
-                      </Button>
-                      <Button type="submit" disabled={processing}>
-                          {editing ? 'Save Changes' : 'Create'}
-                      </Button>
-                  </div>
-              </form>
-          </DialogContent>
-      </Dialog>
-  );
+                    {/* Publish Status */}
+                    <div className="grid gap-2">
+                        <Label>Publishing</Label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {publishOptions.map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    type="button"
+                                    onClick={() => setData('publish_status', opt.value)}
+                                    className={cn(
+                                        'flex flex-col items-start gap-1 rounded-lg border p-3 text-left transition-colors',
+                                        data.publish_status === opt.value
+                                            ? 'border-primary bg-primary/5 text-primary'
+                                            : 'border-border bg-background text-foreground hover:bg-muted/50',
+                                    )}
+                                >
+                                    <span className="flex items-center gap-1.5 font-medium text-sm">
+                                        {opt.icon}
+                                        {opt.label}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">{opt.description}</span>
+                                </button>
+                            ))}
+                        </div>
+                        {errors.publish_status && <p className="text-xs text-destructive">{errors.publish_status}</p>}
+
+                        {data.publish_status === 'scheduled' && (
+                            <div className="grid gap-1.5 pl-0.5">
+                                <Label htmlFor="promo-published-at">Publish Date & Time</Label>
+                                <DateTimePicker
+                                    id="promo-published-at"
+                                    value={data.published_at}
+                                    onChange={(v) => setData('published_at', v)}
+                                    min={minDateTime}
+                                />
+                                {errors.published_at && <p className="text-xs text-destructive">{errors.published_at}</p>}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Expiry */}
+                    <div className="grid gap-2 rounded-lg border border-border p-3">
+                        <div className="flex items-center justify-between">
+                            <Label className="text-sm font-medium">Expiry Date</Label>
+                            <div className="flex items-center gap-2">
+                                <Checkbox
+                                    id="promo-non-expiring"
+                                    checked={isNonExpiring}
+                                    onCheckedChange={(checked) => {
+                                        setIsNonExpiring(!!checked);
+                                        if (checked) setData('expires_at', '');
+                                    }}
+                                />
+                                <Label htmlFor="promo-non-expiring" className="cursor-pointer text-sm font-normal">
+                                    Non-expiring
+                                </Label>
+                            </div>
+                        </div>
+                        {!isNonExpiring && (
+                            <div className="grid gap-1.5">
+                                <DateTimePicker
+                                    id="promo-expires-at"
+                                    value={data.expires_at}
+                                    onChange={(v) => setData('expires_at', v)}
+                                    min={minDateTime}
+                                />
+                                {errors.expires_at && <p className="text-xs text-destructive">{errors.expires_at}</p>}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex shrink-0 justify-end gap-2 pt-2">
+                        <Button type="button" variant="outline" onClick={onClose}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={processing}>
+                            {editing ? 'Save Changes' : 'Create'}
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
 }
 
 export default function PromotionsIndex({ promotions }: Props) {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
 
-  const handleDelete = (promotion: Promotion) => {
-      if (!confirm(`Delete "${promotion.title}"?`)) return;
-      router.delete(admin.promotions.destroy({ promotion: promotion.hashed_id }).url, { preserveScroll: true });
-  };
+    const handleDelete = (promotion: Promotion) => {
+        if (!confirm(`Delete "${promotion.title}"?`)) return;
+        router.delete(admin.promotions.destroy({ promotion: promotion.hashed_id }).url, { preserveScroll: true });
+    };
 
-  const openCreate = () => {
-      setEditingPromotion(null);
-      setModalOpen(true);
-  };
+    const openCreate = () => {
+        setEditingPromotion(null);
+        setModalOpen(true);
+    };
 
-  const openEdit = (promotion: Promotion) => {
-      setEditingPromotion(promotion);
-      setModalOpen(true);
-  };
+    const openEdit = (promotion: Promotion) => {
+        setEditingPromotion(promotion);
+        setModalOpen(true);
+    };
 
-  return (
-      <AppLayout breadcrumbs={breadcrumbs}>
-          <Head title="Promotions & Announcements" />
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Promotions & Announcements" />
 
-          <div className="flex flex-col gap-6 p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                      <div className="flex size-10 items-center justify-center rounded-xl bg-purple-500/10">
-                          <Megaphone className="size-5 text-purple-600" />
-                      </div>
-                      <div>
-                          <h1 className="text-xl font-bold text-foreground">Promotions & Announcements</h1>
-                          <p className="text-sm text-muted-foreground">Publish promotions and announcements visible in the customer app</p>
-                      </div>
-                  </div>
-                  <Button size="sm" onClick={openCreate}>
-                      <Plus className="size-4" />
-                      Create New
-                  </Button>
-              </div>
+            <div className="flex flex-col gap-6 p-4 md:p-6">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="flex size-10 items-center justify-center rounded-xl bg-purple-500/10">
+                            <Megaphone className="size-5 text-purple-600" />
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold text-foreground">Promotions & Announcements</h1>
+                            <p className="text-sm text-muted-foreground">Publish promotions and announcements visible in the customer app</p>
+                        </div>
+                    </div>
+                    <Button size="sm" onClick={openCreate}>
+                        <Plus className="size-4" />
+                        Create New
+                    </Button>
+                </div>
 
-              <div className="rounded-2xl border border-border bg-card shadow-xs">
-                  <DataTable
-                      data={promotions.data as unknown as Record<string, unknown>[]}
-                      emptyMessage="No promotions yet. Create one to get started."
-                      columns={[
-                          {
-                              key: 'thumbnail_url',
-                              header: '',
-                              render: (row) =>
-                                  row['thumbnail_url'] ? (
-                                      <img
-                                          src={row['thumbnail_url'] as string}
-                                          alt=""
-                                          className="size-10 rounded-md object-cover"
-                                      />
-                                  ) : (
-                                      <div className="flex size-10 items-center justify-center rounded-md bg-muted">
-                                          <Image className="size-4 text-muted-foreground" />
-                                      </div>
-                                  ),
-                          },
-                          {
-                              key: 'title',
-                              header: 'Title',
-                              render: (row) => (
-                                  <div>
-                                      <p className="font-medium text-foreground">{row['title'] as string}</p>
-                                      <p className="max-w-64 truncate text-xs text-muted-foreground">{row['excerpt'] as string}</p>
-                                  </div>
-                              ),
-                          },
-                          {
-                              key: 'type',
-                              header: 'Type',
-                              render: (row) => (
-                                  <span
-                                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
-                                          row['type'] === 'promotion'
-                                              ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                                              : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                                      }`}
-                                  >
-                                      <Tag className="size-3" />
-                                      {row['type'] as string}
-                                  </span>
-                              ),
-                          },
-                          {
-                              key: 'is_published',
-                              header: 'Status',
-                              render: (row) =>
-                                  row['is_published'] ? (
-                                      <span className="inline-flex rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300">
-                                          Published
-                                      </span>
-                                  ) : (
-                                      <span className="inline-flex rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                                          Draft
-                                      </span>
-                                  ),
-                          },
-                          {
-                              key: 'created_at',
-                              header: 'Created',
-                              render: (row) => <span className="text-sm text-muted-foreground">{row['created_at'] as string}</span>,
-                          },
-                          {
-                              key: 'actions',
-                              header: '',
-                              render: (row) => (
-                                  <div className="flex items-center gap-1">
-                                      <Button variant="ghost" size="sm" onClick={() => openEdit(row as unknown as Promotion)}>
-                                          <Pencil className="size-4" />
-                                      </Button>
-                                      <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="text-destructive hover:text-destructive"
-                                          onClick={() => handleDelete(row as unknown as Promotion)}
-                                      >
-                                          <Trash2 className="size-4" />
-                                      </Button>
-                                  </div>
-                              ),
-                          },
-                      ]}
-                  />
-              </div>
+                <div className="rounded-2xl border border-border bg-card shadow-xs">
+                    <DataTable
+                        data={promotions.data as unknown as Record<string, unknown>[]}
+                        emptyMessage="No promotions yet. Create one to get started."
+                        columns={[
+                            {
+                                key: 'thumbnail_url',
+                                header: '',
+                                render: (row) =>
+                                    row['thumbnail_url'] ? (
+                                        <img
+                                            src={row['thumbnail_url'] as string}
+                                            alt=""
+                                            className="size-10 rounded-md object-cover"
+                                        />
+                                    ) : (
+                                        <div className="flex size-10 items-center justify-center rounded-md bg-muted">
+                                            <Image className="size-4 text-muted-foreground" />
+                                        </div>
+                                    ),
+                            },
+                            {
+                                key: 'title',
+                                header: 'Title',
+                                render: (row) => (
+                                    <div>
+                                        <p className="font-medium text-foreground">{row['title'] as string}</p>
+                                        <p className="max-w-64 truncate text-xs text-muted-foreground">{row['excerpt'] as string}</p>
+                                    </div>
+                                ),
+                            },
+                            {
+                                key: 'type',
+                                header: 'Type',
+                                render: (row) => (
+                                    <span
+                                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
+                                            row['type'] === 'promotion'
+                                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                                                : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                                        }`}
+                                    >
+                                        <Tag className="size-3" />
+                                        {row['type'] as string}
+                                    </span>
+                                ),
+                            },
+                            {
+                                key: 'publish_status',
+                                header: 'Status',
+                                render: (row) => (
+                                    <StatusBadge
+                                        status={(row['publish_status'] as PublishStatus) ?? 'draft'}
+                                        publishedAt={row['published_at'] as string | null}
+                                        expiresAt={row['expires_at'] as string | null}
+                                    />
+                                ),
+                            },
+                            {
+                                key: 'expires_at',
+                                header: 'Expires',
+                                render: (row) =>
+                                    row['expires_at'] ? (
+                                        <span className="text-sm text-muted-foreground">{row['expires_at'] as string}</span>
+                                    ) : (
+                                        <span className="text-xs text-muted-foreground/50">—</span>
+                                    ),
+                            },
+                            {
+                                key: 'created_at',
+                                header: 'Created',
+                                render: (row) => <span className="text-sm text-muted-foreground">{row['created_at'] as string}</span>,
+                            },
+                            {
+                                key: 'actions',
+                                header: '',
+                                render: (row) => (
+                                    <div className="flex items-center gap-1">
+                                        <Button variant="ghost" size="sm" onClick={() => openEdit(row as unknown as Promotion)}>
+                                            <Pencil className="size-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-destructive hover:text-destructive"
+                                            onClick={() => handleDelete(row as unknown as Promotion)}
+                                        >
+                                            <Trash2 className="size-4" />
+                                        </Button>
+                                    </div>
+                                ),
+                            },
+                        ]}
+                    />
+                </div>
 
-              {promotions.last_page > 1 && <Pagination paginator={promotions} />}
-          </div>
+                {promotions.last_page > 1 && <Pagination paginator={promotions} />}
+            </div>
 
-          <PromotionFormModal
-              key={editingPromotion?.id ?? 'new'}
-              open={modalOpen}
-              onClose={() => setModalOpen(false)}
-              editing={editingPromotion}
-          />
-      </AppLayout>
-  );
+            <PromotionFormModal
+                key={editingPromotion?.id ?? 'new'}
+                open={modalOpen}
+                onClose={() => setModalOpen(false)}
+                editing={editingPromotion}
+            />
+        </AppLayout>
+    );
 }

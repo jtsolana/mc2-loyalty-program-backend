@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
+use App\Services\PointService;
 
 class AuthService
 {
@@ -40,6 +41,18 @@ class AuthService
 
         if ($loyverseId) {
             $user->update(['loyverse_customer_id' => $loyverseId]);
+        }
+
+        $currentCustomerCount = User::whereHas('roles', fn ($q) => $q->where('name', 'customer'))->where('id', '<=', $user->id)->count();
+        $firstCustomerLimit = config('app.first_customer_registration_limit');
+        
+        if ($currentCustomerCount <= $firstCustomerLimit) {
+            $pointService = new PointService();
+            $pointService->earnPoints(
+                customer: $user,
+                points: 10,
+                description: "Bonus points for being among the first {$firstCustomerLimit} customers!",
+            );
         }
 
         $user->sendEmailVerificationNotification();

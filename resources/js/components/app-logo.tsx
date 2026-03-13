@@ -6,7 +6,7 @@ export default function AppLogo() {
 
     return (
         <>
-            <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
+            <div className="flex aspect-square size-10 shrink-0 items-center justify-center rounded-md bg-white p-2 text-sidebar-primary-foreground">
                 {company?.logo_url ? (
                     <img
                         src={company.logo_url}

@@ -1,9 +1,10 @@
-import { Head, router, useForm } from '@inertiajs/react';
-import { Pencil, Plus, Search, Trash2, Users2 } from 'lucide-react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { CheckCircle, AlertCircle, Pencil, Plus, Search, Trash2, Users2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { DataTable } from '@/components/admin/data-table';
 import { Pagination } from '@/components/admin/pagination';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -136,6 +137,7 @@ function UserFormModal({
 }
 
 export default function UsersIndex({ users, roles, filters }: Props) {
+    const { flash } = usePage().props;
     const [search, setSearch] = useState(filters.search ?? '');
     const [modalOpen, setModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<UserRow | null>(null);
@@ -149,7 +151,7 @@ export default function UsersIndex({ users, roles, filters }: Props) {
     );
 
     const handleDelete = (user: UserRow) => {
-        if (!confirm(`Delete user "${user.name}"? This cannot be undone.`)) return;
+        if (!confirm(`Delete user "${user.name}"?`)) return;
         router.delete(admin.users.destroy({ user: user.hashed_id }).url, { preserveScroll: true });
     };
 
@@ -173,6 +175,18 @@ export default function UsersIndex({ users, roles, filters }: Props) {
             <Head title="Users" />
 
             <div className="flex flex-col gap-6 p-4 md:p-6">
+                {flash.success && (
+                    <Alert className="border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-300">
+                        <CheckCircle className="size-4 text-green-600 dark:text-green-400" />
+                        <AlertDescription>{flash.success}</AlertDescription>
+                    </Alert>
+                )}
+                {flash.error && (
+                    <Alert variant="destructive">
+                        <AlertCircle className="size-4" />
+                        <AlertDescription>{flash.error}</AlertDescription>
+                    </Alert>
+                )}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3">
                         <div className="flex size-10 items-center justify-center rounded-xl bg-indigo-500/10">

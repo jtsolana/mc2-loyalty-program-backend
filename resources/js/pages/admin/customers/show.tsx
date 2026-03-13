@@ -1,10 +1,12 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, ShoppingBag, Star, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Receipt, ShoppingBag, Star, TrendingDown, TrendingUp } from 'lucide-react';
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DataTable } from '@/components/admin/data-table';
 import { StatCard } from '@/components/admin/stat-card';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem, PointTransaction, Purchase } from '@/types';
+import type { BreadcrumbItem, PointTransaction, Purchase, PurchaseLineItem } from '@/types';
 import admin from '@/routes/admin';
 
 interface Customer {
@@ -25,7 +27,15 @@ interface Props {
     transactions: PointTransaction[];
 }
 
+const formatDate = (value: string) => {
+    const d = new Date(value);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 export default function CustomerShow({ customer, purchases, transactions }: Props) {
+    const [receiptPurchase, setReceiptPurchase] = useState<Purchase | null>(null);
+
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Admin', href: admin.dashboard().url },
         { title: 'Customers', href: admin.customers.index().url },
@@ -94,7 +104,19 @@ export default function CustomerShow({ customer, purchases, transactions }: Prop
                                 data={purchases as unknown as Record<string, unknown>[]}
                                 emptyMessage="No purchases yet."
                                 columns={[
-                                    { key: 'loyverse_receipt_id', header: 'Receipt' },
+                                    {
+                                        key: 'loyverse_receipt_id',
+                                        header: 'Receipt',
+                                        render: (row) => (
+                                            <button
+                                                type="button"
+                                                className="font-mono text-xs font-bold cursor-pointer text-primary underline-offset-2 hover:underline"
+                                                onClick={() => setReceiptPurchase(row as unknown as Purchase)}
+                                            >
+                                                {row['loyverse_receipt_id'] as string}
+                                            </button>
+                                        ),
+                                    },
                                     {
                                         key: 'total_amount',
                                         header: 'Amount',
@@ -126,7 +148,7 @@ export default function CustomerShow({ customer, purchases, transactions }: Prop
                                             </span>
                                         ),
                                     },
-                                    { key: 'created_at', header: 'Date' },
+                                    { key: 'created_at', header: 'Date', render: (row) => formatDate(row['created_at'] as string) },
                                 ]}
                             />
                         </div>
@@ -176,14 +198,56 @@ export default function CustomerShow({ customer, purchases, transactions }: Prop
                                         ),
                                     },
                                     { key: 'balance_after', header: 'Balance', render: (row) => (row['balance_after'] as number).toLocaleString() },
-                                    { key: 'description', header: 'Description', className: 'max-w-48 truncate' },
-                                    { key: 'created_at', header: 'Date' },
+                                    { key: 'description', header: 'Description', className: 'max-w-4xl truncate' },
+                                    { key: 'created_at', header: 'Date', render: (row) => formatDate(row['created_at'] as string), className: 'max-w-4xl truncate' },
                                 ]}
                             />
                         </div>
                     </div>
                 </div>
             </div>
+
+            <Dialog open={!!receiptPurchase} onOpenChange={(v) => !v && setReceiptPurchase(null)}>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Receipt className="size-4" />
+                            Receipt #{receiptPurchase?.loyverse_receipt_id}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                                    <th className="pb-2 font-medium">Item</th>
+                                    <th className="pb-2 font-medium">Variant</th>
+                                    <th className="pb-2 font-medium">SKU</th>
+                                    <th className="pb-2 text-center font-medium">Qty</th>
+                                    <th className="pb-2 text-right font-medium">Price</th>
+                                    <th className="pb-2 text-right font-medium">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(receiptPurchase?.loyverse_payload?.line_items ?? []).map((item: PurchaseLineItem, i: number) => (
+                                    <tr key={i} className="border-b border-border/50 last:border-0">
+                                        <td className="py-2 font-medium">{item.item_name}</td>
+                                        <td className="py-2 font-medium">{item.variant_name}</td>
+                                        <td className="py-2 font-mono text-xs text-muted-foreground">{item.sku ?? '—'}</td>
+                                        <td className="py-2 text-center">{item.quantity}</td>
+                                        <td className="py-2 text-right">₱{item.price.toLocaleString()}</td>
+                                        <td className="py-2 text-right font-medium">₱{item.total_money.toLocaleString()}</td>
+                                    </tr>
+                                ))}
+                                {!(receiptPurchase?.loyverse_payload?.line_items?.length) && (
+                                    <tr>
+                                        <td colSpan={5} className="py-6 text-center text-muted-foreground">No line items found.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }
