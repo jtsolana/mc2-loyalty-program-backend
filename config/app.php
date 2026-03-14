@@ -125,7 +125,7 @@ return [
 
     'eligibility_sku_prefix' => env('ELIGIBILITY_SKU_PREFIX', 'E-'),
 
-    'mobile_scheme' => env('MOBILE_APP_SCHEME', 'mc2app://'),
+    'mobile_scheme' => env('MOBILE_APP_SCHEME'),
 
     'reward_redemption_limit_per_day' => env('REWARD_REDEMPTION_LIMIT_PER_DAY', 1),
 
