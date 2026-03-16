@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "QQ57RJ5UTD.com.example.myapp",
+        "paths": [
+          "/forgot-password/*"
+        ]
+      }
+    ]
+  }
+}

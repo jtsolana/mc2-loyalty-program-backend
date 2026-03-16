@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.mc2.app",
+      "sha256_cert_fingerprints": [
+        "6F:7A:E4:76:7B:D3:09:05:AE:FB:87:32:EB:FB:A9:06:0C:75:33:C2:75:5F:DA:EF:68:F4:94:5C:34:78:43:50"
+      ]
+    }
+  }
+]
