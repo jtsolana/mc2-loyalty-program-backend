@@ -38,6 +38,7 @@ class RewardController extends Controller
             'data' => [
                 'current_points' => $totalPoints,
                 'redeemable' => $redeemable,
+                'todays_reward_limit_reached' => $user->todaysRewardLimitReached,
                 'history' => RewardResource::collection($user->rewards),
             ],
         ]);

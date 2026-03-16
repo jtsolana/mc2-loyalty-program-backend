@@ -38,6 +38,7 @@ class UserResource extends JsonResource
                     ])
                     ->values();
             }),
+            'todays_reward_limit_reached' => $this->todaysRewardLimitReached,
             'created_at' => $this->created_at,
         ];
     }
