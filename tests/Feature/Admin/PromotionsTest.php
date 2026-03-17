@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
@@ -222,4 +223,80 @@ it('publish scheduled promotions command publishes due promotions and dispatches
 
 it('unauthenticated user cannot access admin promotions', function () {
     $this->get('/admin/promotions')->assertRedirect('/login');
+});
+
+it('creating a promotion increments the cache version', function () {
+    $admin = makeAdminForPromotions();
+    Cache::put('promotions:version', 5);
+
+    $this->actingAs($admin)
+        ->post('/admin/promotions', [
+            'title' => 'Cache Test',
+            'excerpt' => 'Testing cache bust.',
+            'content' => '<p>Content.</p>',
+            'type' => 'promotion',
+            'publish_status' => 'draft',
+        ])
+        ->assertRedirect();
+
+    expect(Cache::get('promotions:version'))->toBe(6);
+});
+
+it('updating a promotion increments the cache version', function () {
+    $admin = makeAdminForPromotions();
+    $promotion = Promotion::factory()->create();
+    Cache::put('promotions:version', 3);
+
+    $this->actingAs($admin)
+        ->post("/admin/promotions/{$promotion->hashed_id}", [
+            'title' => 'Updated',
+            'excerpt' => 'Updated excerpt.',
+            'content' => '<p>Updated.</p>',
+            'type' => 'announcement',
+            'publish_status' => 'published',
+        ])
+        ->assertRedirect();
+
+    expect(Cache::get('promotions:version'))->toBe(4);
+});
+
+it('deleting a promotion increments the cache version', function () {
+    $admin = makeAdminForPromotions();
+    $promotion = Promotion::factory()->create();
+    Cache::put('promotions:version', 2);
+
+    $this->actingAs($admin)
+        ->delete("/admin/promotions/{$promotion->hashed_id}")
+        ->assertRedirect();
+
+    expect(Cache::get('promotions:version'))->toBe(3);
+});
+
+it('publish scheduled promotions command increments the cache version', function () {
+    Queue::fake();
+    Cache::put('promotions:version', 1);
+
+    Promotion::factory()->scheduled()->create([
+        'title' => 'Due Promo',
+        'published_at' => now()->subMinute(),
+    ]);
+
+    $this->artisan(PublishScheduledPromotionsCommand::class)
+        ->assertSuccessful();
+
+    expect(Cache::get('promotions:version'))->toBe(2);
+});
+
+it('publish scheduled promotions command does not increment cache version when no promotions are due', function () {
+    Queue::fake();
+    Cache::put('promotions:version', 1);
+
+    Promotion::factory()->scheduled()->create([
+        'published_at' => now()->addHour(),
+    ]);
+
+    $this->artisan(PublishScheduledPromotionsCommand::class)
+        ->assertSuccessful();
+
+    expect(Cache::get('promotions:version'))->toBe(1);
 });

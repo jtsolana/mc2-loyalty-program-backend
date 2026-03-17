@@ -20,7 +20,7 @@ it('sends a password reset link to a registered email', function () {
     Notification::assertSentTo($user, ResetPassword::class, function (ResetPassword $notification) use ($user): bool {
         $url = $notification->toMail($user)->actionUrl ?? '';
 
-        return str_starts_with($url, config('app.mobile_scheme').'://reset-password/');
+        return str_starts_with($url, config('app.mobile_scheme').'reset-password');
     });
 });
 

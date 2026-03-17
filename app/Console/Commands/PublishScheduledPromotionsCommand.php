@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Jobs\SendPushNotificationToCustomers;
 use App\Models\Promotion;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 
 class PublishScheduledPromotionsCommand extends Command
 {
@@ -37,6 +38,10 @@ class PublishScheduledPromotionsCommand extends Command
                     'deep_link' => "{$mobileScheme}promotions/{$promotion->hashed_id}",
                 ]
             )->onQueue('loyverse');
+        }
+
+        if ($promotions->isNotEmpty()) {
+            Cache::increment('promotions:version');
         }
 
         $this->info("Published {$promotions->count()} scheduled promotion(s).");

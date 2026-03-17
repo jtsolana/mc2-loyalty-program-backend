@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CompanyProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -51,6 +52,8 @@ class CompanyProfileController extends Controller
         }
 
         $company->update($data);
+
+        Cache::forget('company_terms');
 
         return back()->with('success', 'Company profile updated successfully.');
     }

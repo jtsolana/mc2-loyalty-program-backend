@@ -5,6 +5,7 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
@@ -106,4 +107,17 @@ it('update validates email format', function () {
 
 it('unauthenticated user cannot access company profile', function () {
     $this->get('/admin/company-profile')->assertRedirect('/login');
+});
+
+it('updating company profile clears the terms cache', function () {
+    $admin = makeAdminForCompany();
+    Cache::put('company_terms', 'old cached terms');
+
+    $this->actingAs($admin)
+        ->post('/admin/company-profile', [
+            'terms' => 'Updated terms and conditions.',
+        ])
+        ->assertRedirect();
+
+    expect(Cache::has('company_terms'))->toBeFalse();
 });

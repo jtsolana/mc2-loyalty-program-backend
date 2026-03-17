@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Promotion;
+use Illuminate\Support\Facades\Cache;
 
 it('returns published promotions publicly', function () {
     Promotion::factory()->count(3)->create(['is_published' => true]);
@@ -57,4 +58,22 @@ it('promotion response includes expected fields', function () {
                 'id', 'title', 'excerpt', 'thumbnail_url', 'content', 'type', 'is_published', 'published_at', 'created_at',
             ],
         ]);
+});
+
+it('caches the promotions index response', function () {
+    Promotion::factory()->count(2)->create(['is_published' => true]);
+
+    $this->getJson('/api/v1/promotions')->assertSuccessful();
+
+    $version = Cache::get('promotions:version', 0);
+    expect(Cache::has("promotions:index:v{$version}:all:1"))->toBeTrue();
+});
+
+it('caches the promotion show response', function () {
+    $promotion = Promotion::factory()->create(['is_published' => true]);
+
+    $this->getJson("/api/v1/promotions/{$promotion->hashed_id}")->assertSuccessful();
+
+    $version = Cache::get('promotions:version', 0);
+    expect(Cache::has("promotions:show:v{$version}:{$promotion->id}"))->toBeTrue();
 });

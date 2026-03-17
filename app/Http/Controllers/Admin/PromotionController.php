@@ -7,6 +7,7 @@ use App\Jobs\SendPushNotificationToCustomers;
 use App\Models\Promotion;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -49,6 +50,8 @@ class PromotionController extends Controller
             $this->dispatchPushNotification($promotion);
         }
 
+        Cache::increment('promotions:version');
+
         return back()->with('success', 'Promotion created successfully.');
     }
 
@@ -70,6 +73,8 @@ class PromotionController extends Controller
             $this->dispatchPushNotification($promotion);
         }
 
+        Cache::increment('promotions:version');
+
         return back()->with('success', 'Promotion updated successfully.');
     }
 
@@ -80,6 +85,8 @@ class PromotionController extends Controller
         }
 
         $promotion->delete();
+
+        Cache::increment('promotions:version');
 
         return back()->with('success', 'Promotion deleted.');
     }

@@ -7,28 +7,36 @@ use App\Http\Resources\Api\PromotionResource;
 use App\Models\Promotion;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class PromotionController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Promotion::query()->published()->latest();
+        $version = Cache::get('promotions:version', 0);
+        $type = $request->input('type', 'all');
+        $page = $request->input('page', 1);
+        $cacheKey = "promotions:index:v{$version}:{$type}:{$page}";
 
-        if ($request->filled('type')) {
-            $query->where('type', $request->input('type'));
-        }
+        return Cache::remember($cacheKey, 600, function () use ($request) {
+            $query = Promotion::query()->published()->latest();
 
-        $promotions = $query->paginate(10);
+            if ($request->filled('type')) {
+                $query->where('type', $request->input('type'));
+            }
 
-        return response()->json([
-            'data' => PromotionResource::collection($promotions),
-            'meta' => [
-                'current_page' => $promotions->currentPage(),
-                'last_page' => $promotions->lastPage(),
-                'per_page' => $promotions->perPage(),
-                'total' => $promotions->total(),
-            ],
-        ]);
+            $promotions = $query->paginate(10);
+
+            return response()->json([
+                'data' => PromotionResource::collection($promotions),
+                'meta' => [
+                    'current_page' => $promotions->currentPage(),
+                    'last_page' => $promotions->lastPage(),
+                    'per_page' => $promotions->perPage(),
+                    'total' => $promotions->total(),
+                ],
+            ]);
+        });
     }
 
     public function show(Promotion $promotion): JsonResponse
@@ -37,8 +45,13 @@ class PromotionController extends Controller
             abort(404);
         }
 
-        return response()->json([
-            'data' => new PromotionResource($promotion),
-        ]);
+        $version = Cache::get('promotions:version', 0);
+        $cacheKey = "promotions:show:v{$version}:{$promotion->id}";
+
+        return Cache::remember($cacheKey, 1800, function () use ($promotion) {
+            return response()->json([
+                'data' => new PromotionResource($promotion),
+            ]);
+        });
     }
 }

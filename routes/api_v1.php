@@ -37,12 +37,7 @@ Route::prefix('v1')->group(function () {
         Route::post('deactivate', [ProfileController::class, 'destroy']);
     });
 
-    // Route::middleware(['auth:sanctum', 'permission:points.earn'])->prefix('staff')->group(function () {
-    //     Route::post('earn-points', EarnPointsController::class);
-    // });
-
     Route::middleware(['auth:sanctum', 'permission:points.redeem'])->prefix('staff')->group(function () {
-        // Route::post('redeem-points', RedeemPointsController::class);
         Route::get('customers/{user}/rewards', [ClaimRewardController::class, 'customerRewards']);
         Route::post('rewards/{user}/claim', [ClaimRewardController::class, 'claim']);
     });
@@ -53,37 +48,6 @@ Route::prefix('v1')->group(function () {
     Route::get('promotions/{promotion}', [PromotionController::class, 'show']);
 
     Route::get('terms', [CompanyProfileController::class, 'terms']);
-
-    // Route::middleware(['auth:sanctum', 'permission:customers.manage'])->prefix('admin')->group(function () {
-    //     Route::get('customers', [CustomerController::class, 'index']);
-    //     Route::get('customers/{user}', [CustomerController::class, 'show']);
-    // });
-
-    // Route::middleware(['auth:sanctum', 'permission:point-rules.manage'])->prefix('admin')->group(function () {
-    //     Route::get('point-rules', [PointRuleController::class, 'index']);
-    //     Route::post('point-rules', [PointRuleController::class, 'store']);
-    //     Route::get('point-rules/{pointRule}', [PointRuleController::class, 'show']);
-    //     Route::put('point-rules/{pointRule}', [PointRuleController::class, 'update']);
-    //     Route::delete('point-rules/{pointRule}', [PointRuleController::class, 'destroy']);
-    // });
-
-    // Route::middleware(['auth:sanctum', 'permission:reward-rules.manage'])->prefix('admin')->group(function () {
-    //     Route::get('reward-rules', [RewardRuleController::class, 'index']);
-    //     Route::post('reward-rules', [RewardRuleController::class, 'store']);
-    //     Route::get('reward-rules/{rewardRule}', [RewardRuleController::class, 'show']);
-    //     Route::put('reward-rules/{rewardRule}', [RewardRuleController::class, 'update']);
-    //     Route::delete('reward-rules/{rewardRule}', [RewardRuleController::class, 'destroy']);
-    // });
-
-    // Route::middleware(['auth:sanctum', 'permission:roles.manage'])->prefix('admin')->group(function () {
-    //     Route::get('roles', [RoleController::class, 'index']);
-    //     Route::post('roles', [RoleController::class, 'store']);
-    //     Route::get('roles/{role}', [RoleController::class, 'show']);
-    //     Route::put('roles/{role}', [RoleController::class, 'update']);
-    //     Route::delete('roles/{role}', [RoleController::class, 'destroy']);
-    //     Route::get('roles/{role}/permissions', [RoleController::class, 'permissions']);
-    //     Route::put('roles/{role}/permissions', [RoleController::class, 'syncPermissions']);
-    // });
 
     Route::middleware('auth:sanctum')->prefix('devices')->group(function () {
         Route::post('register', [UserDeviceController::class, 'register']);
