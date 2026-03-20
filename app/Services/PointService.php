@@ -63,6 +63,8 @@ class PointService
             $loyaltyPoint->increment('lifetime_points', $points);
             $loyaltyPoint->refresh();
 
+            Log::info("Loyalty points updated for user_id={$customer->id}: +{$points} points (Total: {$loyaltyPoint->total_points})");
+
             $transaction = PointTransaction::create([
                 'user_id' => $customer->id,
                 'staff_id' => $staff?->id,
@@ -73,6 +75,8 @@ class PointService
                 'reference_type' => $purchase ? Purchase::class : null,
                 'reference_id' => $purchase?->id,
             ]);
+
+            Log::info("Earned {$points} points for user_id={$customer->id}. Reason: {$transaction}");
 
             $this->checkAndNotifyForReedemableRewards($customer);
 
