@@ -3,11 +3,29 @@
     "apps": [],
     "details": [
       {
-        "appID": "QQ57RJ5UTD.com.example.myapp",
+        "appID": "Y4BQ9LRMZB.com.mc2.app.test",
         "paths": [
-          "/forgot-password/*"
+          "/reset-password/*"
+        ]
+      },
+      {
+        "appID": "JPU2LPRLA4.com.mc2.app",
+        "paths": [
+          "/reset-password/*"
         ]
       }
+    ]
+  },
+  "activitycontinuation": {
+    "apps": [
+      "Y4BQ9LRMZB.com.mc2.app.test",
+      "JPU2LPRLA4.com.mc2.app"
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "Y4BQ9LRMZB.com.mc2.app.test",
+      "JPU2LPRLA4.com.mc2.app"
     ]
   }
 }
