@@ -8,6 +8,7 @@ use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
 use Kreait\Laravel\Firebase\Facades\Firebase;
 use App\Models\UserDevice;
+use Illuminate\Foundation\Vite;
 use Illuminate\Support\Facades\Log;
 
 class SendPushNotificationToCustomers implements ShouldQueue
@@ -50,7 +51,8 @@ class SendPushNotificationToCustomers implements ShouldQueue
                     ->withNotification(
                         Notification::create(
                             $this->title,
-                            $this->body
+                            $this->body,
+                            url('favicon/web-app-manifest-192x192.png')
                         )
                     )
                     ->withData($this->data);

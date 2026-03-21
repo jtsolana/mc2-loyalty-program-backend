@@ -101,7 +101,8 @@ class PointService
                         ->withNotification(
                             Notification::create(
                                 '🎉 Reward Unlocked!',
-                                'You are now eligible to claim your reward!'
+                                'You are now eligible to claim your reward!',
+                                url('favicon/web-app-manifest-192x192.png')
                             )
                         )
                         ->withData([
