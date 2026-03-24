@@ -112,8 +112,7 @@ class PointService
 
                     $messaging->send($message);
                 } catch (\Kreait\Firebase\Exception\Messaging\NotFound $e) {
-                    Log::warning($e->getMessage(), ['token' => $device->fcm_token]);
-                    // Token expired or invalid
+                    \Sentry\captureException($e);
                     $device->delete();
                 }
             }

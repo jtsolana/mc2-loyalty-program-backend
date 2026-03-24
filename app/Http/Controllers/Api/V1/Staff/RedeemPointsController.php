@@ -28,6 +28,7 @@ class RedeemPointsController extends Controller
                 purchase: $purchase,
             );
         } catch (\RuntimeException $e) {
+            \Sentry\captureException($e);
             return response()->json(['message' => $e->getMessage()], 422);
         }
 

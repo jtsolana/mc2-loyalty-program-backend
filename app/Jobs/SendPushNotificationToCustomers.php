@@ -57,7 +57,7 @@ class SendPushNotificationToCustomers implements ShouldQueue
 
                 $messaging->send($message);
             } catch (\Kreait\Firebase\Exception\Messaging\NotFound $e) {
-                Log::warning($e->getMessage(), ['token' => $device->fcm_token]);
+                \Sentry\captureException($e);
             }
         }
     }

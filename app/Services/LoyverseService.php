@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Reward;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use App\Models\Reward;
 
 class LoyverseService
 {
@@ -61,9 +61,7 @@ class LoyverseService
                 'body' => $response->body(),
             ]);
         } catch (ConnectionException $e) {
-            Log::error('Loyverse API unreachable during createCustomer', [
-                'message' => $e->getMessage(),
-            ]);
+            \Sentry\captureException($e);
         }
 
         return null;
@@ -98,23 +96,16 @@ class LoyverseService
                 return $items;
             }
         } catch (ConnectionException $e) {
-            Log::error('Loyverse API unreachable during getItems', [
-                'message' => $e->getMessage(),
-            ]);
+            \Sentry\captureException($e);
         }
 
         return null;
     }
 
     /**
-     * Create a receipt in Loyverse for a claimed reward, which helps maintain accurate records in Loyverse 
-     * and can be useful for reporting and auditing purposes. This should be called whenever a reward is claimed, 
+     * Create a receipt in Loyverse for a claimed reward, which helps maintain accurate records in Loyverse
+     * and can be useful for reporting and auditing purposes. This should be called whenever a reward is claimed,
      * and it will create a corresponding receipt in Loyverse with the relevant details.
-     *
-     * @param string $customerId
-     * @param string $loyverseVariantId
-     * @param integer $claimAmount
-     * @return array|null
      */
     public function createRewardReceipt(Reward $reward, string $customerId, string $loyverseVariantId, int $claimAmount): ?array
     {
@@ -154,11 +145,9 @@ class LoyverseService
 
             if ($response->successful()) {
                 return $response->json('line_items');
-            }    
+            }
         } catch (ConnectionException $e) {
-            Log::error('Loyverse API unreachable during createRewardReceipt', [
-                'message' => $e->getMessage(),
-            ]);
+            \Sentry\captureException($e);
         }
 
         return null;
