@@ -131,7 +131,7 @@ return [
 
     'first_customer_registration_limit' => env('FIRST_CUSTOMER_REGISTRATION_LIMIT', 100),
 
-    'loyverse_reward_category' => explode(',', env('LOYVERSE_REWARD_CATEGORY', '')),
+    'loyverse_reward_category' => explode(',', env('LOYVERSE_REWARD_CATEGORY')),
 
     'loyverse_store_id' => env('LOYVERSE_STORE_ID'),
 
