@@ -8,6 +8,8 @@
     "nightwatch_mcp": false,
     "sail": false,
     "skills": [
+        "configuring-horizon",
+        "socialite-development",
         "wayfinder-development",
         "pest-testing",
         "inertia-react-development",
