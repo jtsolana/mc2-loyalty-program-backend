@@ -63,6 +63,8 @@ class PointService
             $loyaltyPoint->increment('lifetime_points', $points);
             $loyaltyPoint->refresh();
 
+            Log::info("Loyalty points updated for user_id={$customer->id}: +{$points} points (Total: {$loyaltyPoint->total_points})");
+
             $transaction = PointTransaction::create([
                 'user_id' => $customer->id,
                 'staff_id' => $staff?->id,
@@ -73,6 +75,8 @@ class PointService
                 'reference_type' => $purchase ? Purchase::class : null,
                 'reference_id' => $purchase?->id,
             ]);
+
+            Log::info("Earned {$points} points for user_id={$customer->id}. Reason: {$transaction}");
 
             $this->checkAndNotifyForReedemableRewards($customer);
 
@@ -91,26 +95,24 @@ class PointService
             $mobileScheme = config('app.mobile_scheme');
 
             foreach ($customer->devices as $device) {
-
-                $message = CloudMessage::new()
-                    ->withToken($device->fcm_token)
-                    ->withNotification(
-                        Notification::create(
-                            '🎉 Reward Unlocked!',
-                            'You are now eligible to claim your reward!'
-                        )
-                    )
-                    ->withData([
-                        'type' => 'reward',
-                        'user_id' => (string) $customer->hashed_id,
-                        'deep_link' => "{$mobileScheme}rewards",
-                    ]);
-
                 try {
+                    $message = CloudMessage::new()
+                        ->withToken($device->fcm_token)
+                        ->withNotification(
+                            Notification::create(
+                                '🎉 Reward Unlocked!',
+                                'You are now eligible to claim your reward!'
+                            )
+                        )
+                        ->withData([
+                            'type' => 'reward',
+                            'user_id' => (string) $customer->hashed_id,
+                            'deep_link' => "{$mobileScheme}rewards",
+                        ]);
+
                     $messaging->send($message);
                 } catch (\Kreait\Firebase\Exception\Messaging\NotFound $e) {
-                    Log::warning($e->getMessage(), ['token' => $device->fcm_token]);
-                    // Token expired or invalid
+                    \Sentry\captureException($e);
                     $device->delete();
                 }
             }

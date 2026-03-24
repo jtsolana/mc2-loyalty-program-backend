@@ -40,6 +40,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', 'permission:points.redeem'])->prefix('staff')->group(function () {
         Route::get('customers/{user}/rewards', [ClaimRewardController::class, 'customerRewards']);
         Route::post('rewards/{user}/claim', [ClaimRewardController::class, 'claim']);
+        Route::get('items', [ClaimRewardController::class, 'getItems']);
     });
 
     Route::post('loyverse/webhook', WebhookController::class);

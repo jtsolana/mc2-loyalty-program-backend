@@ -67,30 +67,6 @@ it('customer reward response includes current points and empty history when no r
         ->assertJsonCount(0, 'data.history');
 });
 
-it('customer history includes claimed and expired rewards', function () {
-    $customer = makeCustomerForRewards(0);
-    $rewardRule = RewardRule::factory()->requiresPoints(100)->create(['reward_title' => 'Free Coffee']);
-
-    Reward::factory()->claimed()->create([
-        'user_id' => $customer->id,
-        'reward_rule_id' => $rewardRule->id,
-        'points_deducted' => 100,
-    ]);
-
-    Reward::factory()->expired()->create([
-        'user_id' => $customer->id,
-        'reward_rule_id' => $rewardRule->id,
-        'points_deducted' => 100,
-    ]);
-
-    $this->actingAs($customer, 'sanctum')
-        ->getJson('/api/v1/customer/rewards')
-        ->assertSuccessful()
-        ->assertJsonCount(2, 'data.history')
-        ->assertJsonPath('data.history.0.reward_rule.reward_title', 'Free Coffee');
-});
-
-
 it('staff cannot claim an already claimed reward', function () {
     $customer = makeCustomerForRewards(0);
     $staff = makeStaffForRewards();

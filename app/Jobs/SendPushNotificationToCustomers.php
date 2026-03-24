@@ -44,21 +44,20 @@ class SendPushNotificationToCustomers implements ShouldQueue
         }
 
         foreach ($userDevices as $device) {
-
-            $message = CloudMessage::new()
-                ->withToken($device->fcm_token)
-                ->withNotification(
-                    Notification::create(
-                        $this->title,
-                        $this->body
-                    )
-                )
-                ->withData($this->data);
-
             try {
+                $message = CloudMessage::new()
+                    ->withToken($device->fcm_token)
+                    ->withNotification(
+                        Notification::create(
+                            $this->title,
+                            $this->body
+                        )
+                    )
+                    ->withData($this->data);
+
                 $messaging->send($message);
             } catch (\Kreait\Firebase\Exception\Messaging\NotFound $e) {
-                Log::warning($e->getMessage(), ['token' => $device->fcm_token]);
+                \Sentry\captureException($e);
             }
         }
     }

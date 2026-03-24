@@ -203,3 +203,59 @@ it('job skips non-SALE receipts', function () {
 
     $this->assertDatabaseMissing('purchases', ['loyverse_receipt_id' => 'R-REFUND']);
 });
+
+it('job excludes fully-discounted items from per-item point calculation', function () {
+    PointRule::factory()->perItem(1)->create();
+    $customer = User::factory()->create(['loyverse_customer_id' => 'LV-CUST-DISC-01']);
+    $customer->roles()->attach(Role::where('name', 'customer')->first());
+    LoyaltyPoint::factory()->create(['user_id' => $customer->id, 'total_points' => 0]);
+
+    $receiptId = 'R-'.Str::random(8);
+    $receipt = [
+        'receipt_number' => $receiptId,
+        'receipt_type' => 'SALE',
+        'total_money' => 999.99,
+        'customer_id' => 'LV-CUST-DISC-01',
+        'line_items' => [
+            ['quantity' => 1, 'item_name' => 'Americano', 'sku' => '10145', 'price' => 120, 'total_money' => 0],
+            ['quantity' => 3, 'item_name' => 'Espresso', 'sku' => '10166', 'price' => 333.33, 'total_money' => 999.99],
+        ],
+    ];
+
+    (new ProcessLoyverseReceipt($receipt))->handle(app(PointService::class));
+
+    // Only Espresso (quantity=3) should earn points; Americano (total_money=0) is excluded
+    expect($customer->fresh()->loyaltyPoint->total_points)->toBe(3);
+    $this->assertDatabaseHas('purchases', [
+        'loyverse_receipt_id' => $receiptId,
+        'points_earned' => 3,
+    ]);
+});
+
+it('job excludes fully-discounted items from spend-based point calculation', function () {
+    PointRule::factory()->create(['spend_amount' => 100, 'points_per_unit' => 1, 'is_active' => true]);
+    $customer = User::factory()->create(['loyverse_customer_id' => 'LV-CUST-DISC-02']);
+    $customer->roles()->attach(Role::where('name', 'customer')->first());
+    LoyaltyPoint::factory()->create(['user_id' => $customer->id, 'total_points' => 0]);
+
+    $receiptId = 'R-'.Str::random(8);
+    $receipt = [
+        'receipt_number' => $receiptId,
+        'receipt_type' => 'SALE',
+        'total_money' => 999.99,
+        'customer_id' => 'LV-CUST-DISC-02',
+        'line_items' => [
+            ['quantity' => 1, 'item_name' => 'Americano', 'sku' => '10145', 'price' => 120, 'total_money' => 0],
+            ['quantity' => 3, 'item_name' => 'Espresso', 'sku' => '10166', 'price' => 333.33, 'total_money' => 999.99],
+        ],
+    ];
+
+    (new ProcessLoyverseReceipt($receipt))->handle(app(PointService::class));
+
+    // Only 999.99 eligible (Americano excluded): floor(999.99 / 100) * 1 = 9 points
+    expect($customer->fresh()->loyaltyPoint->total_points)->toBe(9);
+    $this->assertDatabaseHas('purchases', [
+        'loyverse_receipt_id' => $receiptId,
+        'points_earned' => 9,
+    ]);
+});

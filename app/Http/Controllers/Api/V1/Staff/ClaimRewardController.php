@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers\Api\V1\Staff;
 
-use App\Enums\RewardStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\LoyverseItemsResource;
 use App\Http\Resources\Api\RewardResource;
-use App\Jobs\SendPushNotificationToCustomers;
+use App\Jobs\CreateLoyverseRewardReceipt;
 use App\Models\RewardRule;
 use App\Models\User;
+use App\Services\LoyverseService;
 use App\Services\PointService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class ClaimRewardController extends Controller
 {
@@ -65,6 +67,7 @@ class ClaimRewardController extends Controller
 
         $claimAmount = $request->input('claim_amount') ?? 1;
         $rewardRule = RewardRule::findOrFail($request->input('reward_rule_id'));
+        $loyverseVariantId = $request->input('variant_id');
 
         if ($rewardRule->is_active !== true) {
             return response()->json([
@@ -81,28 +84,23 @@ class ClaimRewardController extends Controller
         $pointService = new PointService;
         $reward = $pointService->claimReward($user, $rewardRule, $user->loyaltyPoint, $claimAmount);
 
-        $reward->update([
-            'status' => RewardStatus::Claimed,
-            'staff_id' => $request->user()->id,
-            'claimed_at' => Carbon::now(),
-        ]);
-
-        $mobileScheme = config('app.mobile_scheme');
-
-        SendPushNotificationToCustomers::dispatch(
-            '🎉 Reward Claimed!',
-            "You have successfully claimed: {$rewardRule->reward_title} ({$claimAmount}x)",
-            [
-                'type' => 'reward',
-                'user_id' => (string) $user->hashed_id,
-                'deep_link' => "{$mobileScheme}rewards",
-            ],
-            $user->id
-        )->onQueue('loyverse');
+        CreateLoyverseRewardReceipt::dispatch($reward, $user, $loyverseVariantId)
+            ->onQueue('loyverse');
 
         return response()->json([
             'message' => 'Reward successfully claimed.',
             'data' => new RewardResource($reward->load('rewardRule')),
+        ]);
+    }
+
+    public function getItems(LoyverseService $loyverseService): JsonResponse
+    {
+        $items = Cache::remember('loyverse_inventory_items', 86400, function () use ($loyverseService) {
+            return $loyverseService->getItems();
+        });
+
+        return response()->json([
+            'data' => LoyverseItemsResource::collection($items),
         ]);
     }
 
@@ -112,6 +110,7 @@ class ClaimRewardController extends Controller
         return $request->validate([
             'claim_amount' => ['required', 'integer', 'min:1'],
             'reward_rule_id' => ['required', 'integer', 'exists:reward_rules,id'],
+            'variant_id' => ['required', 'string'],
         ]);
     }
 }

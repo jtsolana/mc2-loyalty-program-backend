@@ -16,7 +16,7 @@ class RewardController extends Controller
         $user = $request->user()->load([
             'loyaltyPoint',
             'rewards' => fn ($q) => $q->whereIn('status', [RewardStatus::Claimed->value, RewardStatus::Expired->value])
-                ->with('rewardRule')
+                ->with('rewardRule', 'purchase')
                 ->latest()
         ]);
 

@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api;
 
 use App\Models\Purchase;
+use App\Models\Reward;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -24,10 +25,18 @@ class PointTransactionResource extends JsonResource
     /** @return array<int, mixed> */
     private function resolvePurchaseItems(): array
     {
-        if ($this->reference_type !== Purchase::class || ! $this->reference instanceof Purchase) {
-            return [];
+        if ($this->reference_type === Purchase::class) {
+            return $this->reference->loyverse_payload['line_items'] ?? [];
         }
 
-        return $this->reference->loyverse_payload['line_items'] ?? [];
+        if ($this->reference_type === Reward::class) {
+            $reward = $this->reference;
+            if ($reward->purchase !== null) {
+                return $reward->purchase->loyverse_payload['line_items'] ?? [];
+            }
+        }
+
+        return [];
+
     }
 }
