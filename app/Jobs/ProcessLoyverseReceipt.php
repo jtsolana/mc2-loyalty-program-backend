@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Enums\PurchaseStatus;
 use App\Models\Purchase;
+use App\Models\Reward;
 use App\Models\User;
 use App\Services\PointService;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -41,7 +42,8 @@ class ProcessLoyverseReceipt implements ShouldQueue
         $lineItems = $this->receipt['line_items'] ?? [];
 
         $eligibleItems = collect($lineItems)->reject(
-            fn (array $item) => str_starts_with($item['sku'] ?? '', config('app.eligibility_sku_prefix'))
+            fn (array $item) => str_starts_with($item['sku'] ?? '', config('app.eligibility_sku_prefix')) ||
+                (float) ($item['total_money'] ?? 0) <= 0
         );
 
         $eligibleTotalMoney = (float) $eligibleItems->sum('total_money');
@@ -64,6 +66,16 @@ class ProcessLoyverseReceipt implements ShouldQueue
             'status' => PurchaseStatus::Completed->value,
             'loyverse_payload' => $this->receipt,
         ]);
+    
+        $receiptNote = explode('|', $this->receipt['note'] ?? '') ?? [];
+
+        if (in_array('rewards_claim', $receiptNote)) {
+            $rewardId = $receiptNote[1] ?? null;
+            
+            if($rewardId) {
+                Reward::where('id', $rewardId)->update(['purchase_id' => $purchase->id]);
+            }
+        }
 
         if ($customer && $pointsEarned > 0) {
             $pointService->earnPoints(

@@ -18,6 +18,7 @@ class Reward extends Model
         'user_id',
         'reward_rule_id',
         'staff_id',
+        'purchase_id',
         'points_deducted',
         'status',
         'expires_at',
@@ -47,6 +48,11 @@ class Reward extends Model
     public function staff(): BelongsTo
     {
         return $this->belongsTo(User::class, 'staff_id');
+    }
+
+    public function purchase(): BelongsTo
+    {
+        return $this->belongsTo(Purchase::class);
     }
 
     public function pointTransactions(): MorphMany

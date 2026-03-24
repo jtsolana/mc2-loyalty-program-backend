@@ -5,9 +5,15 @@ namespace App\Services;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Models\Reward;
 
 class LoyverseService
 {
+    private function baseUrl(): string
+    {
+        return config('services.loyverse.base_url');
+    }
+
     private function token(): ?string
     {
         return config('services.loyverse.api_token');
@@ -42,11 +48,9 @@ class LoyverseService
 
         try {
 
-            $baseUrl = config('services.loyverse.base_url');
-
             $response = Http::withToken($this->token())
                 ->timeout(10)
-                ->post($baseUrl.'/customers', $payload);
+                ->post($this->baseUrl().'/customers', $payload);
 
             if ($response->successful()) {
                 return $response->json('id');
@@ -58,6 +62,101 @@ class LoyverseService
             ]);
         } catch (ConnectionException $e) {
             Log::error('Loyverse API unreachable during createCustomer', [
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        return null;
+    }
+
+    /**
+     * Get items from Loyverse.
+     * Returns null if the API token is missing, the request fails, or Loyverse
+     * returns an error.
+     */
+    public function getItems(int $limit = 250): ?array
+    {
+        if (! $this->token()) {
+            return null;
+        }
+
+        try {
+            $query = [
+                'limit' => $limit,
+            ];
+
+            $response = Http::withToken($this->token())
+                ->timeout(10)
+                ->get($this->baseUrl().'/items', $query);
+
+            if ($response->successful()) {
+
+                $items = collect($response->json('items'))->reject(
+                    fn (array $item) => $item['category_id'] && ! in_array($item['category_id'], config('app.loyverse_reward_category'))
+                )->toArray();
+
+                return $items;
+            }
+        } catch (ConnectionException $e) {
+            Log::error('Loyverse API unreachable during getItems', [
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        return null;
+    }
+
+    /**
+     * Create a receipt in Loyverse for a claimed reward, which helps maintain accurate records in Loyverse 
+     * and can be useful for reporting and auditing purposes. This should be called whenever a reward is claimed, 
+     * and it will create a corresponding receipt in Loyverse with the relevant details.
+     *
+     * @param string $customerId
+     * @param string $loyverseVariantId
+     * @param integer $claimAmount
+     * @return array|null
+     */
+    public function createRewardReceipt(Reward $reward, string $customerId, string $loyverseVariantId, int $claimAmount): ?array
+    {
+        if (! $this->token()) {
+            return null;
+        }
+
+        $loyverseStoreId = config('app.loyverse_store_id');
+        $paymentTypeId = config('app.loyverse_payment_type_id');
+
+        $payload = [
+            'store_id' => $loyverseStoreId,
+            'customer_id' => $customerId,
+            'source' => 'MC2 APP',
+            'note' => "rewards_claim|{$reward->id}",
+            'line_items' => [
+                [
+                    'variant_id' => $loyverseVariantId,
+                    'quantity' => $claimAmount,
+                    'price' => 0,
+                    'cost' => 0,
+                ],
+            ],
+            'payments' => [
+                [
+                    'payment_type_id' => $paymentTypeId,
+                    'money_amount' => 0,
+                    'paid_at' => now()->toIso8601String(),
+                ],
+            ],
+        ];
+
+        try {
+            $response = Http::withToken($this->token())
+                ->timeout(10)
+                ->post($this->baseUrl().'/receipts', $payload);
+
+            if ($response->successful()) {
+                return $response->json('line_items');
+            }    
+        } catch (ConnectionException $e) {
+            Log::error('Loyverse API unreachable during createRewardReceipt', [
                 'message' => $e->getMessage(),
             ]);
         }

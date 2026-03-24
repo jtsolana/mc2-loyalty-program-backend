@@ -16,11 +16,17 @@ class RewardResource extends JsonResource
             'expires_at' => $this->expires_at,
             'claimed_at' => $this->claimed_at,
             'created_at' => $this->created_at,
-            'reward_rule' => [
-                'name' => $this->rewardRule->name,
-                'reward_title' => $this->rewardRule->reward_title,
-                'points_required' => $this->rewardRule->points_required,
-            ],
+            'reward_details' => $this->resolvePurchaseItems(),
         ];
+    }
+
+    /** @return array<int, mixed> */
+    private function resolvePurchaseItems(): array
+    {
+        if ($this->purchase === null || $this->purchase->loyverse_payload === null) {
+            return [];
+        }
+
+        return $this->purchase->loyverse_payload['line_items'] ?? [];
     }
 }
