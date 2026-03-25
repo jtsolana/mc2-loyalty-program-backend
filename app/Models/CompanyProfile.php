@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use Database\Factories\CompanyProfileFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 
 class CompanyProfile extends Model
 {
-    /** @use HasFactory<\Database\Factories\CompanyProfileFactory> */
+    /** @use HasFactory<CompanyProfileFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -25,9 +27,11 @@ class CompanyProfile extends Model
         return static::firstOrCreate([]);
     }
 
-    public function getLogoUrlAttribute(): ?string
+    protected function logoUrl(): Attribute
     {
-        return $this->logo ? Storage::disk('public')->url($this->logo) : null;
+        return Attribute::make(
+            get: fn () => $this->logo ? Storage::disk('public')->url($this->logo) : null,
+        );
     }
 
     protected function casts(): array

@@ -16,6 +16,7 @@ use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Kreait\Firebase\Exception\Messaging\NotFound;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
 use Kreait\Laravel\Firebase\Facades\Firebase;
@@ -43,12 +44,6 @@ class PointService
         }
 
         return $rule->calculatePoints(amount: $amount);
-    }
-
-    /** @deprecated Use calculatePoints() instead */
-    public function calculatePointsForAmount(float $amount): int
-    {
-        return $this->calculatePoints(amount: $amount);
     }
 
     public function earnPoints(User $customer, int $points, string $description, ?User $staff = null, ?Purchase $purchase = null): PointTransaction
@@ -111,7 +106,7 @@ class PointService
                         ]);
 
                     $messaging->send($message);
-                } catch (\Kreait\Firebase\Exception\Messaging\NotFound $e) {
+                } catch (NotFound $e) {
                     \Sentry\captureException($e);
                     $device->delete();
                 }
