@@ -2,33 +2,24 @@
 
 namespace App\Jobs;
 
+use App\Models\UserDevice;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Kreait\Firebase\Exception\Messaging\NotFound;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
 use Kreait\Laravel\Firebase\Facades\Firebase;
-use App\Models\UserDevice;
-use Illuminate\Support\Facades\Log;
 
 class SendPushNotificationToCustomers implements ShouldQueue
 {
     use Queueable;
 
-    private string $title;
-    private string $body;
-    private array $data;
-    private ?int $userId;
-
-    /**
-     * Create a new job instance.
-     */
-    public function __construct(string $title, string $body, array $data = [], ?int $userId = null)
-    {
-        $this->title = $title;
-        $this->body = $body;
-        $this->data = $data;
-        $this->userId = $userId;
-    }
+    public function __construct(
+        private string $title,
+        private string $body,
+        private array $data = [],
+        private ?int $userId = null,
+    ) {}
 
     /**
      * Execute the job.
@@ -37,7 +28,7 @@ class SendPushNotificationToCustomers implements ShouldQueue
     {
         $messaging = Firebase::messaging();
 
-        if($this->userId) {
+        if ($this->userId) {
             $userDevices = UserDevice::where('user_id', $this->userId)->get();
         } else {
             $userDevices = UserDevice::all();
@@ -56,7 +47,7 @@ class SendPushNotificationToCustomers implements ShouldQueue
                     ->withData($this->data);
 
                 $messaging->send($message);
-            } catch (\Kreait\Firebase\Exception\Messaging\NotFound $e) {
+            } catch (NotFound $e) {
                 \Sentry\captureException($e);
             }
         }

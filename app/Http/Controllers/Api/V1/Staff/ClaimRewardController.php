@@ -53,7 +53,7 @@ class ClaimRewardController extends Controller
         ]);
     }
 
-    public function claim(Request $request, User $user): JsonResponse
+    public function claim(Request $request, User $user, PointService $pointService): JsonResponse
     {
         $this->validateClaim($request);
 
@@ -81,7 +81,6 @@ class ClaimRewardController extends Controller
             ], 422);
         }
 
-        $pointService = new PointService;
         $reward = $pointService->claimReward($user, $rewardRule, $user->loyaltyPoint, $claimAmount);
 
         CreateLoyverseRewardReceipt::dispatch($reward, $user, $loyverseVariantId)

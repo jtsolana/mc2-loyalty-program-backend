@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 
 trait HashTrait
@@ -13,9 +14,11 @@ trait HashTrait
         return $this->where($field ?? $this->getRouteKeyName(), $decodedValue)->first();
     }
 
-    public function getHashedIdAttribute(): string
+    protected function hashedId(): Attribute
     {
-        return hashids_encode($this->{$this->getRouteKeyName()});
+        return Attribute::make(
+            get: fn () => hashids_encode($this->{$this->getRouteKeyName()}),
+        );
     }
 
     public static function findByHash(string $value): ?static

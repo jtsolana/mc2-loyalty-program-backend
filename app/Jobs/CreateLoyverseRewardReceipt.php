@@ -14,37 +14,15 @@ class CreateLoyverseRewardReceipt implements ShouldQueue
 {
     use Queueable;
 
-    private $reward;
-
-    private $user;
-
-    private $loyverseVariantId;
-
-    private $claimAmount;
-
-    /**
-     * Create a new job instance.
-     */
     public function __construct(
-        Reward $reward, 
-        User $user, 
-        string $loyverseVariantId,
-        int $claimAmount = 1
-    )
-    {
-        $this->reward = $reward;
-        $this->user = $user;
-        $this->loyverseVariantId = $loyverseVariantId;
-        $this->claimAmount = $claimAmount;
-    }
+        private Reward $reward,
+        private User $user,
+        private string $loyverseVariantId,
+        private int $claimAmount = 1,
+    ) {}
 
-    /**
-     * Execute the job.
-     */
-    public function handle(): void
+    public function handle(LoyverseService $loyverseService): void
     {
-        $loyverseService = new LoyverseService;
-
         $customerId = $this->user->loyverse_customer_id;
 
         $loyverseItems = $loyverseService->createRewardReceipt($this->reward, $customerId, $this->loyverseVariantId, $this->claimAmount);
