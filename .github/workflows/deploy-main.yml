@@ -41,7 +41,7 @@ jobs:
       - name: Sync files to Hostinger VPS main Branch
         uses: easingthemes/ssh-deploy@v4.1.10
         with:
-          SSH_PRIVATE_KEY: ${{ secrets.SERVER_USER_PROD }}
+          SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
           REMOTE_HOST: ${{ secrets.SERVER_HOST_HOSTINGER_VPS }}
           REMOTE_USER: ${{ secrets.SERVER_USER }}
           TARGET: /var/www/mc2-loyalty-program-backend
@@ -59,7 +59,7 @@ jobs:
         with:
           host: ${{ secrets.SERVER_HOST_HOSTINGER_VPS }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_USER_PROD }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd /var/www/mc2-loyalty-program-backend
 
