@@ -35,6 +35,7 @@ Route::prefix('v1')->group(function () {
         Route::get('points/history', [PointController::class, 'history']);
         Route::get('rewards', [RewardController::class, 'index']);
         Route::post('deactivate', [ProfileController::class, 'destroy']);
+        Route::post('help-center', [ProfileController::class, 'contactSupport'])->middleware('throttle:3,60');
     });
 
     Route::middleware(['auth:sanctum', 'permission:points.redeem'])->prefix('staff')->group(function () {
