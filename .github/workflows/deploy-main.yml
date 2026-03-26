@@ -41,8 +41,8 @@ jobs:
       - name: Sync files to Hostinger VPS main Branch
         uses: easingthemes/ssh-deploy@v4.1.10
         with:
-          SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
-          REMOTE_HOST: ${{ secrets.SERVER_HOST }}
+          SSH_PRIVATE_KEY: ${{ secrets.SERVER_USER_PROD }}
+          REMOTE_HOST: ${{ secrets.SERVER_HOST_HOSTINGER_VPS }}
           REMOTE_USER: ${{ secrets.SERVER_USER }}
           TARGET: /var/www/mc2-loyalty-program-backend
           ARGS: >
@@ -57,9 +57,9 @@ jobs:
       - name: Run Laravel Production Commands
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SERVER_HOST }}
+          host: ${{ secrets.SERVER_HOST_HOSTINGER_VPS }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
+          key: ${{ secrets.SERVER_USER_PROD }}
           script: |
             cd /var/www/mc2-loyalty-program-backend
 
