@@ -47,7 +47,6 @@ jobs:
           TARGET: /var/www/mc2-loyalty-program-backend
           ARGS: >
             -avzr --delete
-            --exclude=".git"
             --exclude="node_modules"
             --exclude=".env"
             --exclude="storage"
