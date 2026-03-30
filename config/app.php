@@ -127,9 +127,9 @@ return [
 
     'mobile_scheme' => env('MOBILE_APP_SCHEME'),
 
-    'reward_redemption_limit_per_day' => env('REWARD_REDEMPTION_LIMIT_PER_DAY', 1),
+    'reward_redemption_limit_per_day' => (int) env('REWARD_REDEMPTION_LIMIT_PER_DAY', 1),
 
-    'first_customer_registration_limit' => env('FIRST_CUSTOMER_REGISTRATION_LIMIT', 100),
+    'first_customer_registration_limit' => (int) env('FIRST_CUSTOMER_REGISTRATION_LIMIT', 100),
 
     'loyverse_reward_category' => explode(',', env('LOYVERSE_REWARD_CATEGORY')),
 
