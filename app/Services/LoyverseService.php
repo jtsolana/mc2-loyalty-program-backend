@@ -34,6 +34,11 @@ class LoyverseService
 
         $payload = ['name' => $data['name']];
 
+        //If the ID is provided, it means the loyverse user wants to update an existing record.
+        if (! empty($data['id'])) {
+            $payload['id'] = $data['id'];
+        }
+
         if (! empty($data['email'])) {
             $payload['email'] = $data['email'];
         }

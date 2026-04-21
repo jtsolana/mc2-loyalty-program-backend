@@ -36,7 +36,7 @@ class AuthService
 
         $loyverseId = $this->loyverseService->createCustomer([
             'name' => '---------------------',
-            'email' => Str::lower(Str::toBase64($user->email)).'@xxxx.com',
+            'email' => Str::lower(Str::toBase64($user->email)).'@mc2.com',
             'phone' => '00000000000',
             'customer_code' => $user->hashed_id,
         ]);
