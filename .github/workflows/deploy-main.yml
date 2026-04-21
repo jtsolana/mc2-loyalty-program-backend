@@ -46,7 +46,7 @@ jobs:
           REMOTE_USER: ${{ secrets.SERVER_USER }}
           TARGET: /var/www/mc2-loyalty-program-backend
           ARGS: >
-            -avzr --delete
+            -avzr --no-group --no-owner --delete
             --exclude="node_modules"
             --exclude=".env"
             --exclude="storage"
