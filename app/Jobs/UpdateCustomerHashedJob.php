@@ -13,7 +13,7 @@ class UpdateCustomerHashedJob implements ShouldQueue
     /**
      * Create a new job instance.
      */
-    public function __construct()
+    public function __construct(public bool $onlyWithoutLoyverseId = false)
     {
         //
     }
@@ -23,9 +23,14 @@ class UpdateCustomerHashedJob implements ShouldQueue
      */
     public function handle(): void
     {
-        User::whereHas('roles', fn ($q) => $q->where('name', 'customer'))
-            ->chunk(100, function ($customers) {
-                UpdateIndividualCustomerHashedJob::dispatch($customers)->onQueue('loyverse');
-            });
+        $query = User::whereHas('roles', fn ($q) => $q->where('name', 'customer'));
+
+        if ($this->onlyWithoutLoyverseId) {
+            $query->whereNull('loyverse_customer_id');
+        }
+
+        $query->chunk(100, function ($customers) {
+            UpdateIndividualCustomerHashedJob::dispatch($customers)->onQueue('loyverse');
+        });
     }
 }
