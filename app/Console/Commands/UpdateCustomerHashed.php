@@ -7,7 +7,7 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use App\Jobs\UpdateCustomerHashedJob;
 
-#[Signature('mc2:update-customer-hashed')]
+#[Signature('mc2:update-customer-hashed {--no-loyverse-id : Only query customers with no loyverse_customer_id}')]
 #[Description('Update customers with hashed IDs and sync with Loyverse')]
 class UpdateCustomerHashed extends Command
 {
@@ -16,6 +16,7 @@ class UpdateCustomerHashed extends Command
      */
     public function handle()
     {
-        UpdateCustomerHashedJob::dispatch()->onQueue('loyverse');
+        $onlyWithoutLoyverseId = $this->option('no-loyverse-id');
+        UpdateCustomerHashedJob::dispatch($onlyWithoutLoyverseId)->onQueue('loyverse');
     }
 }
