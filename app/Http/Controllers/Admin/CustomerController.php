@@ -5,12 +5,16 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\PointService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class CustomerController extends Controller
 {
+    public function __construct(private readonly PointService $pointService) {}
+
     public function index(Request $request): Response
     {
         $customerRole = Role::where('name', 'customer')->first();
@@ -38,6 +42,7 @@ class CustomerController extends Controller
                 'username' => $user->username,
                 'email' => $user->email,
                 'phone' => $user->phone,
+                'date_of_birth' => $user->date_of_birth?->format('F j, Y'),
                 'avatar' => $user->avatar,
                 'purchases_count' => $user->purchases_count,
                 'total_points' => $user->loyaltyPoint?->total_points ?? 0,
@@ -70,10 +75,13 @@ class CustomerController extends Controller
         return Inertia::render('admin/customers/show', [
             'customer' => [
                 'id' => $user->id,
+                'hashed_id' => $user->hashed_id,
                 'name' => $user->name,
                 'username' => $user->username,
                 'email' => $user->email,
                 'phone' => $user->phone,
+                'date_of_birth' => $user->date_of_birth?->format('F j, Y'),
+                'date_of_birth_iso' => $user->date_of_birth?->toDateString(),
                 'avatar' => $user->avatar,
                 'total_points' => $user->loyaltyPoint?->total_points ?? 0,
                 'lifetime_points' => $user->loyaltyPoint?->lifetime_points ?? 0,
@@ -81,6 +89,36 @@ class CustomerController extends Controller
             ],
             'purchases' => $purchases,
             'transactions' => $transactions,
+            'canEditCustomer' => auth()->user()?->hasRole('admin') ?? false,
         ]);
+    }
+
+    public function update(Request $request, User $user): RedirectResponse
+    {
+        abort_unless(auth()->user()?->hasRole('admin'), 403);
+
+        $data = $request->validate([
+            'date_of_birth' => ['nullable', 'date', 'before:today'],
+        ]);
+
+        $user->update(['date_of_birth' => $data['date_of_birth'] ?? null]);
+
+        return back()->with('success', 'Customer updated successfully.');
+    }
+
+    public function creditPoints(Request $request, User $user): RedirectResponse
+    {
+        $admin = auth()->user();
+
+        abort_unless($admin?->hasRole('admin'), 403);
+
+        $data = $request->validate([
+            'points' => ['required', 'integer', 'min:1', 'max:1000'],
+            'reason' => ['required', 'string', 'max:255'],
+        ]);
+
+        $this->pointService->adjustPoints($user, $data['points'], $data['reason'], $admin);
+
+        return back()->with('success', "Credited {$data['points']} points to {$user->name}.");
     }
 }

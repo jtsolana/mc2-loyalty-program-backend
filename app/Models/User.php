@@ -28,6 +28,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'username',
         'email',
         'phone',
+        'date_of_birth',
         'avatar',
         'loyverse_customer_id',
         'password',
@@ -48,6 +49,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'date_of_birth' => 'date',
             'two_factor_confirmed_at' => 'datetime',
         ];
     }

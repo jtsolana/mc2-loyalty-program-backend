@@ -52,6 +52,7 @@ class DashboardController extends Controller
                 'username' => $user->username,
                 'email' => $user->email,
                 'phone' => $user->phone,
+                'date_of_birth' => $user->date_of_birth?->format('F j, Y'),
                 'purchases_count' => $user->purchases_count,
                 'total_points' => $user->loyaltyPoint?->total_points ?? 0,
                 'lifetime_points' => $user->loyaltyPoint?->lifetime_points ?? 0,

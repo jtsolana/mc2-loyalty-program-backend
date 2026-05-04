@@ -23,6 +23,8 @@ Route::middleware(['auth', 'verified', 'permission:customers.manage'])->prefix('
 
     Route::get('customers', [AdminCustomerController::class, 'index'])->name('customers.index');
     Route::get('customers/{user}', [AdminCustomerController::class, 'show'])->name('customers.show');
+    Route::put('customers/{user}', [AdminCustomerController::class, 'update'])->name('customers.update');
+    Route::post('customers/{user}/credit-points', [AdminCustomerController::class, 'creditPoints'])->name('customers.credit-points');
 
     Route::get('promotions', [AdminPromotionController::class, 'index'])->name('promotions.index');
     Route::post('promotions', [AdminPromotionController::class, 'store'])->name('promotions.store');

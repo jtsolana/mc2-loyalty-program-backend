@@ -1,20 +1,26 @@
-import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Receipt, ShoppingBag, Star, TrendingDown, TrendingUp } from 'lucide-react';
-import { useState } from 'react';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { ArrowLeft, Pencil, Plus, Receipt, ShoppingBag, Star, TrendingDown, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DataTable } from '@/components/admin/data-table';
 import { StatCard } from '@/components/admin/stat-card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, PointTransaction, Purchase, PurchaseLineItem } from '@/types';
 import admin from '@/routes/admin';
 
 interface Customer {
     id: number;
+    hashed_id: string;
     name: string;
     username: string | null;
     email: string | null;
     phone: string | null;
+    date_of_birth: string | null;
+    date_of_birth_iso: string | null;
     avatar: string | null;
     total_points: number;
     lifetime_points: number;
@@ -25,6 +31,7 @@ interface Props {
     customer: Customer;
     purchases: Purchase[];
     transactions: PointTransaction[];
+    canEditCustomer: boolean;
 }
 
 const formatDate = (value: string) => {
@@ -33,13 +40,47 @@ const formatDate = (value: string) => {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-export default function CustomerShow({ customer, purchases, transactions }: Props) {
+export default function CustomerShow({ customer, purchases, transactions, canEditCustomer }: Props) {
     const [receiptPurchase, setReceiptPurchase] = useState<Purchase | null>(null);
+    const [dobModalOpen, setDobModalOpen] = useState(false);
+    const [creditModalOpen, setCreditModalOpen] = useState(false);
+
+    const dobForm = useForm<{ date_of_birth: string }>({
+        date_of_birth: customer.date_of_birth_iso ?? '',
+    });
+
+    const creditForm = useForm<{ points: string; reason: string }>({
+        points: '',
+        reason: '',
+    });
+
+    useEffect(() => {
+        dobForm.setData('date_of_birth', customer.date_of_birth_iso ?? '');
+    }, [customer.date_of_birth_iso]);
+
+    const handleDobSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        dobForm.put(`/admin/customers/${customer.hashed_id}`, {
+            preserveScroll: true,
+            onSuccess: () => setDobModalOpen(false),
+        });
+    };
+
+    const handleCreditSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        creditForm.post(`/admin/customers/${customer.hashed_id}/credit-points`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setCreditModalOpen(false);
+                creditForm.reset();
+            },
+        });
+    };
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Admin', href: admin.dashboard().url },
         { title: 'Customers', href: admin.customers.index().url },
-        { title: customer.name, href: admin.customers.show({ user: customer.id }).url },
+        { title: customer.name, href: `/admin/customers/${customer.hashed_id}` },
     ];
 
     return (
@@ -64,9 +105,34 @@ export default function CustomerShow({ customer, purchases, transactions }: Prop
                             <p className="text-sm text-muted-foreground">
                                 {customer.username ? `@${customer.username}` : customer.email} · Member since {customer.created_at}
                             </p>
+                            <p className="flex items-center gap-2 text-sm text-muted-foreground mt-[10px]">
+                                <span>Birthday: {customer.date_of_birth ?? '—'}</span>
+                                {canEditCustomer && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="icon"
+                                        className="size-6"
+                                        onClick={() => setDobModalOpen(true)}
+                                        aria-label={customer.date_of_birth ? 'Edit date of birth' : 'Add date of birth'}
+                                        title={customer.date_of_birth ? 'Edit date of birth' : 'Add date of birth'}
+                                    >
+                                        {customer.date_of_birth ? <Pencil className="size-3" /> : <Plus className="size-3" />}
+                                    </Button>
+                                )}
+                            </p>
                         </div>
                     </div>
                 </div>
+
+                {canEditCustomer && (
+                    <div className="flex justify-end">
+                        <Button type="button" size="sm" onClick={() => setCreditModalOpen(true)}>
+                            <Plus className="size-4" />
+                            Credit Points
+                        </Button>
+                    </div>
+                )}
 
                 {/* Stats */}
                 <div className="grid gap-4 sm:grid-cols-3">
@@ -246,6 +312,93 @@ export default function CustomerShow({ customer, purchases, transactions }: Prop
                             </tbody>
                         </table>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={creditModalOpen} onOpenChange={(v) => !v && setCreditModalOpen(false)}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Credit Points</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleCreditSubmit} className="flex flex-col gap-4">
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="points">Points</Label>
+                            <Input
+                                id="points"
+                                type="number"
+                                min={1}
+                                max={1000}
+                                step={1}
+                                value={creditForm.data.points}
+                                onChange={(e) => creditForm.setData('points', e.target.value)}
+                                placeholder="Enter points (1 - 1000)"
+                                autoFocus
+                            />
+                            {creditForm.errors.points && (
+                                <p className="text-xs text-destructive">{creditForm.errors.points}</p>
+                            )}
+                        </div>
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="reason">Reason</Label>
+                            <Textarea
+                                id="reason"
+                                value={creditForm.data.reason}
+                                onChange={(e) => creditForm.setData('reason', e.target.value)}
+                                placeholder="Why are you crediting these points?"
+                                rows={3}
+                                maxLength={255}
+                            />
+                            {creditForm.errors.reason && (
+                                <p className="text-xs text-destructive">{creditForm.errors.reason}</p>
+                            )}
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setCreditModalOpen(false);
+                                    creditForm.reset();
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={creditForm.processing}>
+                                Credit Points
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={dobModalOpen} onOpenChange={(v) => !v && setDobModalOpen(false)}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{customer.date_of_birth ? 'Edit' : 'Add'} Date of Birth</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleDobSubmit} className="flex flex-col gap-4">
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="date_of_birth">Date of Birth</Label>
+                            <Input
+                                id="date_of_birth"
+                                type="date"
+                                value={dobForm.data.date_of_birth}
+                                onChange={(e) => dobForm.setData('date_of_birth', e.target.value)}
+                                max={new Date().toISOString().slice(0, 10)}
+                            />
+                            {dobForm.errors.date_of_birth && (
+                                <p className="text-xs text-destructive">{dobForm.errors.date_of_birth}</p>
+                            )}
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" onClick={() => setDobModalOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={dobForm.processing}>
+                                Save
+                            </Button>
+                        </div>
+                    </form>
                 </DialogContent>
             </Dialog>
         </AppLayout>

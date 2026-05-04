@@ -4,6 +4,7 @@ export interface CustomerRow {
     username: string | null;
     email: string | null;
     phone: string | null;
+    date_of_birth: string | null;
     avatar: string | null;
     purchases_count: number;
     total_points: number;

@@ -24,6 +24,7 @@ class AuthService
             'username' => $data['username'] ?? null,
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
+            'date_of_birth' => $data['date_of_birth'] ?? null,
             'password' => Hash::make($data['password']),
         ]);
 

@@ -150,6 +150,7 @@ export default function AdminDashboard({ stats, recentCustomers, monthlyPurchase
                                     ),
                                 },
                                 { key: 'phone', header: 'Phone', render: (row) => (row['phone'] as string) ?? '—' },
+                                { key: 'date_of_birth', header: 'Date of Birth', render: (row) => (row['date_of_birth'] as string) ?? '—' },
                                 {
                                     key: 'purchases_count',
                                     header: 'Purchases',

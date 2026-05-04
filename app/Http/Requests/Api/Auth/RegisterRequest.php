@@ -18,6 +18,7 @@ class RegisterRequest extends FormRequest
             'username' => ['nullable', 'string', 'max:50', 'unique:users,username', 'alpha_dash'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:30'],
+            'date_of_birth' => ['required', 'date', 'before:today'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ];
     }
