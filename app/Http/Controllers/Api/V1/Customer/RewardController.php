@@ -26,12 +26,16 @@ class RewardController extends Controller
             ->where('is_active', true)
             ->where('points_required', '<=', $totalPoints)
             ->get()
+            ->filter(fn (RewardRule $rule) => $rule->isApplicableToUser($user))
+            ->values()
             ->map(fn (RewardRule $rule) => [
                 'id' => $rule->hashed_id,
                 'name' => $rule->name,
                 'reward_title' => $rule->reward_title,
                 'points_required' => $rule->points_required,
-                'redeemable_count' => (int) floor($totalPoints / $rule->points_required),
+                'redeemable_count' => $rule->points_required > 0
+                    ? (int) floor($totalPoints / $rule->points_required)
+                    : 1,
             ]);
 
         return response()->json([

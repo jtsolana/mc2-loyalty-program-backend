@@ -83,6 +83,7 @@ export interface RewardRule {
     hashed_id: string;
     name: string;
     reward_title: string;
+    type: string;
     points_required: number;
     expires_in_days: number;
     is_active: boolean;

@@ -7,4 +7,4 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::command(ExpireRewardsCommand::class)->daily();
 Schedule::command(PublishScheduledPromotionsCommand::class)->everyMinute();
-Schedule::command(AwardBirthdayPointsCommand::class)->dailyAt('00:05');
+// Schedule::command(AwardBirthdayPointsCommand::class)->dailyAt('00:05');

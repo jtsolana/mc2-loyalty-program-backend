@@ -18,6 +18,7 @@ class CreateLoyverseRewardReceipt implements ShouldQueue
         private Reward $reward,
         private User $user,
         private string $loyverseVariantId,
+        private User $staff,
         private int $claimAmount = 1,
     ) {}
 
@@ -29,7 +30,7 @@ class CreateLoyverseRewardReceipt implements ShouldQueue
 
         $this->reward->update([
             'status' => RewardStatus::Claimed,
-            'staff_id' => $this->user->id,
+            'staff_id' => $this->staff->id,
             'claimed_at' => Carbon::now(),
         ]);
 

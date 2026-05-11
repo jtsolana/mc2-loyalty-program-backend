@@ -20,6 +20,7 @@ class UserResource extends JsonResource
             'avatar' => $this->avatar,
             'hashed_id' => $this->hashed_id,
             'email_verified_at' => $this->email_verified_at,
+            'is_birthday_today' => $this->isBirthdayToday(),
             'roles' => RoleResource::collection($this->whenLoaded('roles')),
             'loyalty_point' => new LoyaltyPointResource($this->whenLoaded('loyaltyPoint')),
             'reward_progress' => $this->whenLoaded('loyaltyPoint', function () {
@@ -27,15 +28,17 @@ class UserResource extends JsonResource
 
                 return RewardRule::where('is_active', true)
                     ->get()
+                    ->filter(fn (RewardRule $rule) => $rule->isApplicableToUser($this->resource))
                     ->map(fn ($rule) => [
                         'rule_id' => $rule->hashed_id,
                         'name' => $rule->name,
                         'reward_title' => $rule->reward_title,
                         'points_required' => $rule->points_required,
                         'current_points' => $totalPoints,
-                        'redeemable_reward' => (int) floor($totalPoints / $rule->points_required),
-                        'points_remaining' => max(0, $rule->points_required - $totalPoints),
-                        'progress_percentage' => min(100, (int) round($totalPoints / $rule->points_required * 100)),
+                        'redeemable_reward' => $rule->points_required > 0
+                            ? (int) floor($totalPoints / $rule->points_required)
+                            : 1,
+                        'points_remaining' => max(0, $rule->points_required - $totalPoints)
                     ])
                     ->values();
             }),

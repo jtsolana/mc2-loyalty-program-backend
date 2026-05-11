@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -19,6 +20,8 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, HashTrait, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
+
+    private const MIN_LIFETIME_POINTS = 10;
 
     /**
      * @var list<string>
@@ -87,6 +90,35 @@ class User extends Authenticatable implements MustVerifyEmail
     public function rewards(): HasMany
     {
         return $this->hasMany(Reward::class);
+    }
+
+    public function isBirthdayToday(): bool
+    {
+        if($this->loyaltyPoint?->lifetime_points < self::MIN_LIFETIME_POINTS) {
+            return false;
+        }
+
+        $birthdayRewardRuleId = config('app.birthday_reward_rule_id');
+        if($this->rewards()->where('reward_rule_id', $birthdayRewardRuleId)
+            ->where('status', 'claimed')
+            ->whereDate('claimed_at', Carbon::today())
+            ->exists()) {
+            return false;
+        }   
+
+        $today = Carbon::today();
+        $dob = $this->date_of_birth;
+        if (! $dob) {
+            return false;
+        }
+
+        if ($dob->month === $today->month && $dob->day === $today->day) {
+            return true;
+        }
+
+        $rollOverFeb29 = $today->month === 2 && $today->day === 28 && ! $today->isLeapYear();
+
+        return $rollOverFeb29 && $dob->month === 2 && $dob->day === 29;
     }
 
     public function hasPermission(string $permission): bool
