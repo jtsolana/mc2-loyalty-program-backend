@@ -102,8 +102,9 @@ class AuthService
             LoyaltyPoint::create(['user_id' => $user->id]);
 
             $loyverseId = $this->loyverseService->createCustomer([
-                'name' => $user->name,
-                'email' => $user->email,
+                'name' => '---------------------',
+                'email' => Str::lower(Str::toBase64($user->email)).'@mc2.com',
+                'phone' => '00000000000',
                 'customer_code' => $user->hashed_id,
             ]);
 
