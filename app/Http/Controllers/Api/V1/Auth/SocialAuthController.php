@@ -37,7 +37,7 @@ class SocialAuthController extends Controller
 
         $token = $user->createToken($request->input('device_name', 'mobile'))->plainTextToken;
 
-        return redirect('mc2app://auth-callback?token=' . $token . '&user=' . urlencode(json_encode(new UserResource($user))));
+        return redirect('mc2app://auth-callback?token=' . $token . '&user=' . urlencode(json_encode(new UserResource($user->load('roles.permissions', 'loyaltyPoint')))));
     }
 
     private function validateProvider(string $provider): void

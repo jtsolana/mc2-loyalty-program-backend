@@ -111,6 +111,8 @@ class AuthService
             if ($loyverseId) {
                 $user->update(['loyverse_customer_id' => $loyverseId]);
             }
+
+            $user->markEmailAsVerified();
         }
 
         $user->socialAccounts()->create([
