@@ -22,7 +22,7 @@ class SocialAuthController extends Controller
     }
 
 
-    public function callback(Request $request, string $provider): JsonResponse
+    public function callback(Request $request, string $provider): RedirectResponse
     {
         $this->validateProvider($provider);
 
@@ -32,15 +32,12 @@ class SocialAuthController extends Controller
             $user = $this->authService->findOrCreateSocialUser($socialiteUser, $provider);
 
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to authenticate with ' . ucfirst($provider)], 422);
+            return redirect('mc2app://auth-callback?error=Failed to authenticate with ' . ucfirst($provider));
         }
 
         $token = $user->createToken($request->input('device_name', 'mobile'))->plainTextToken;
 
-        return response()->json([
-            'user' => new UserResource($user->load('roles.permissions', 'loyaltyPoint')),
-            'token' => $token,
-        ]);
+        return redirect('mc2app://auth-callback?token=' . $token . '&user=' . urlencode(json_encode(new UserResource($user))));
     }
 
     private function validateProvider(string $provider): void
