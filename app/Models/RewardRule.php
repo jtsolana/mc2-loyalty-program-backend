@@ -49,7 +49,7 @@ class RewardRule extends Model
     public function isApplicableToBirthdayUser(User $user): bool
     {
         return match ($this->type) {
-            RewardRuleType::Birthday => $user->isBirthdayToday(),
+            RewardRuleType::Birthday => $user->isBirthdayRewardClaimable(),
             default => false,
         };
     }

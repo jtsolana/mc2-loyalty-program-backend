@@ -20,7 +20,7 @@ class UserResource extends JsonResource
             'avatar' => $this->avatar,
             'hashed_id' => $this->hashed_id,
             'email_verified_at' => $this->email_verified_at,
-            'is_birthday_today' => $this->isBirthdayToday(),
+            'is_birthday_today' => $this->isBirthdayRewardClaimable(),
             'roles' => RoleResource::collection($this->whenLoaded('roles')),
             'loyalty_point' => new LoyaltyPointResource($this->whenLoaded('loyaltyPoint')),
             'reward_progress' => $this->whenLoaded('loyaltyPoint', function () {

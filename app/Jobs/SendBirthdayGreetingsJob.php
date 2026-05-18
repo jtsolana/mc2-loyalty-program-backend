@@ -11,8 +11,6 @@ class SendBirthdayGreetingsJob implements ShouldQueue
 {
     use Queueable;
 
-    private const MIN_LIFETIME_POINTS = 10;
-
     public function handle(): void
     {
         $today = Carbon::today();
@@ -34,7 +32,7 @@ class SendBirthdayGreetingsJob implements ShouldQueue
             ->get();
 
         foreach ($customers as $customer) {
-            if($customer->isBirthdayToday()) {
+            if ($customer->isBirthdayRewardClaimable()) {
                 $mobileScheme = config('app.mobile_scheme');
 
                 SendPushNotificationToCustomers::dispatch(

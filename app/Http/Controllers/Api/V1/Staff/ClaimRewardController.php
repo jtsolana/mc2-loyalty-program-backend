@@ -33,12 +33,12 @@ class ClaimRewardController extends Controller
 
         $totalPoints = $user->loyaltyPoint?->total_points ?? 0;
 
-        $isBirthday = $user->isBirthdayToday();
+        $isBirthdayRewardClaimable = $user->isBirthdayRewardClaimable();
 
         $redeemable = RewardRule::where('is_active', true)
             ->where('points_required', '<=', $totalPoints)
             ->get()
-            ->filter(fn (RewardRule $rule) => $isBirthday
+            ->filter(fn (RewardRule $rule) => $isBirthdayRewardClaimable
                 ? $rule->isApplicableToBirthdayUser($user)
                 : $rule->isApplicableToUser($user))
             ->values()

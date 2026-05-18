@@ -92,33 +92,41 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Reward::class);
     }
 
-    public function isBirthdayToday(): bool
+    public function isBirthdayRewardClaimable(): bool
     {
-        if($this->loyaltyPoint?->lifetime_points < self::MIN_LIFETIME_POINTS) {
+        if ($this->loyaltyPoint?->lifetime_points < self::MIN_LIFETIME_POINTS) {
             return false;
         }
 
-        $birthdayRewardRuleId = config('app.birthday_reward_rule_id');
-        if($this->rewards()->where('reward_rule_id', $birthdayRewardRuleId)
-            ->where('status', 'claimed')
-            ->whereDate('claimed_at', Carbon::today())
-            ->exists()) {
-            return false;
-        }   
-
-        $today = Carbon::today();
         $dob = $this->date_of_birth;
         if (! $dob) {
             return false;
         }
 
-        if ($dob->month === $today->month && $dob->day === $today->day) {
-            return true;
+        $today = Carbon::today();
+
+        $birthday = ($dob->month === 2 && $dob->day === 29 && ! $today->isLeapYear())
+            ? Carbon::create($today->year, 2, 28)
+            : Carbon::create($today->year, $dob->month, $dob->day);
+
+        $birthdayRewardRuleId = config('app.birthday_reward_rule_id');
+        $birthdayRewardRule = RewardRule::find($birthdayRewardRuleId);
+        if (! $birthdayRewardRule) {
+            return false;
         }
 
-        $rollOverFeb29 = $today->month === 2 && $today->day === 28 && ! $today->isLeapYear();
+        $windowStart = $birthday->copy()->startOfDay();
+        $windowEnd = $birthday->copy()->addDays($birthdayRewardRule->expires_in_days - 1)->endOfDay();
 
-        return $rollOverFeb29 && $dob->month === 2 && $dob->day === 29;
+        if (! $today->betweenIncluded($windowStart, $windowEnd)) {
+            return false;
+        }
+
+        return ! $this->rewards()
+            ->where('reward_rule_id', $birthdayRewardRuleId)
+            ->where('status', 'claimed')
+            ->whereBetween('claimed_at', [$windowStart, $windowEnd])
+            ->exists();
     }
 
     public function hasPermission(string $permission): bool

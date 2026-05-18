@@ -27,7 +27,7 @@ class UpdateRewardRuleRequest extends FormRequest
             $rules['points_required'] = ['required', 'integer', 'min:1'];
             $rules['expires_in_days'] = ['required', 'integer', 'min:1'];
         } elseif ($type === 'birthday') {
-            $rules['expires_in_days'] = ['required', 'integer', 'in:1'];
+            $rules['expires_in_days'] = ['required', 'integer', 'min:1'];
         }
 
         return $rules;

@@ -144,7 +144,6 @@ function RuleFormModal({
                                 min="1"
                                 value={data.expires_in_days}
                                 onChange={(e) => setData('expires_in_days', e.target.value)}
-                                disabled={data.type === 'birthday'}
                                 required
                             />
                             {errors.expires_in_days && <p className="text-xs text-destructive">{errors.expires_in_days}</p>}
