@@ -22,6 +22,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 type RuleFormData = {
     name: string;
     reward_title: string;
+    type: string;
     points_required: string;
     expires_in_days: string;
     is_active: boolean;
@@ -39,6 +40,7 @@ function RuleFormModal({
     const { data, setData, post, put, processing, errors, reset } = useForm<RuleFormData>({
         name: editing?.name ?? '',
         reward_title: editing?.reward_title ?? '',
+        type: editing?.type ?? 'points_based',
         points_required: String(editing?.points_required ?? 500),
         expires_in_days: String(editing?.expires_in_days ?? 30),
         is_active: editing?.is_active ?? true,
@@ -48,6 +50,7 @@ function RuleFormModal({
         setData({
             name: editing?.name ?? '',
             reward_title: editing?.reward_title ?? '',
+            type: editing?.type ?? 'points_based',
             points_required: String(editing?.points_required ?? 500),
             expires_in_days: String(editing?.expires_in_days ?? 30),
             is_active: editing?.is_active ?? true,
@@ -98,19 +101,41 @@ function RuleFormModal({
                         {errors.reward_title && <p className="text-xs text-destructive">{errors.reward_title}</p>}
                     </div>
 
+                    <div className="grid gap-1.5">
+                        <Label htmlFor="rule-type">Rule Type</Label>
+                        <select
+                            id="rule-type"
+                            value={data.type}
+                            onChange={(e) => {
+                                setData('type', e.target.value);
+                                if (e.target.value === 'birthday') {
+                                    setData('expires_in_days', '1');
+                                }
+                            }}
+                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                            required
+                        >
+                            <option value="points_based">Points Based</option>
+                            <option value="birthday">Birthday</option>
+                        </select>
+                        {errors.type && <p className="text-xs text-destructive">{errors.type}</p>}
+                    </div>
+
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="grid gap-1.5">
-                            <Label htmlFor="points-required">Points Required</Label>
-                            <Input
-                                id="points-required"
-                                type="number"
-                                min="1"
-                                value={data.points_required}
-                                onChange={(e) => setData('points_required', e.target.value)}
-                                required
-                            />
-                            {errors.points_required && <p className="text-xs text-destructive">{errors.points_required}</p>}
-                        </div>
+                        {data.type === 'points_based' && (
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="points-required">Points Required</Label>
+                                <Input
+                                    id="points-required"
+                                    type="number"
+                                    min="1"
+                                    value={data.points_required}
+                                    onChange={(e) => setData('points_required', e.target.value)}
+                                    required
+                                />
+                                {errors.points_required && <p className="text-xs text-destructive">{errors.points_required}</p>}
+                            </div>
+                        )}
                         <div className="grid gap-1.5">
                             <Label htmlFor="expires-in-days">Expires In (days)</Label>
                             <Input
@@ -141,9 +166,18 @@ function RuleFormModal({
                     <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm dark:border-green-800 dark:bg-green-900/20">
                         <p className="font-medium text-green-800 dark:text-green-200">Preview</p>
                         <p className="mt-0.5 text-green-700 dark:text-green-300">
-                            Customer earns <strong>{data.reward_title || '?'}</strong> when they reach{' '}
-                            <strong>{data.points_required || '?'} points</strong>. Reward expires in{' '}
-                            <strong>{data.expires_in_days || '?'} day(s)</strong>.
+                            {data.type === 'points_based' ? (
+                                <>
+                                    Customer earns <strong>{data.reward_title || '?'}</strong> when they reach{' '}
+                                    <strong>{data.points_required || '?'} points</strong>. Reward expires in{' '}
+                                    <strong>{data.expires_in_days || '?'} day(s)</strong>.
+                                </>
+                            ) : (
+                                <>
+                                    Customer earns <strong>{data.reward_title || '?'}</strong> on their birthday.
+                                    Reward expires in <strong>1 day</strong>.
+                                </>
+                            )}
                         </p>
                     </div>
 
@@ -220,6 +254,20 @@ export default function RewardRulesIndex({ rules }: Props) {
                                 render: (row) => <span className="font-medium text-foreground">{row['name'] as string}</span>,
                             },
                             {
+                                key: 'type',
+                                header: 'Type',
+                                render: (row) => {
+                                    const type = row['type'] as string;
+                                    const label = type === 'birthday' ? 'Birthday' : 'Points Based';
+                                    const bgColor = type === 'birthday' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
+                                    return (
+                                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${bgColor}`}>
+                                            {label}
+                                        </span>
+                                    );
+                                },
+                            },
+                            {
                                 key: 'reward_title',
                                 header: 'Reward',
                                 render: (row) => (
@@ -232,11 +280,16 @@ export default function RewardRulesIndex({ rules }: Props) {
                             {
                                 key: 'points_required',
                                 header: 'Points Required',
-                                render: (row) => (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                                        {row['points_required'] as number} pts
-                                    </span>
-                                ),
+                                render: (row) => {
+                                    const points = row['points_required'] as number;
+                                    return points === 0 ? (
+                                        <span className="text-sm text-muted-foreground">—</span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                                            {points} pts
+                                        </span>
+                                    );
+                                },
                             },
                             {
                                 key: 'expires_in_days',

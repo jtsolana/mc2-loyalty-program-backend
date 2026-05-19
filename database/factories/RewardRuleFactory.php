@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\RewardRule;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\RewardRule>
+ * @extends Factory<RewardRule>
  */
 class RewardRuleFactory extends Factory
 {
@@ -14,6 +15,7 @@ class RewardRuleFactory extends Factory
         return [
             'name' => fake()->words(3, true),
             'reward_title' => '1 Free '.fake()->word(),
+            'type' => 'points_based',
             'points_required' => fake()->numberBetween(100, 1000),
             'expires_in_days' => 30,
             'is_active' => true,
@@ -23,6 +25,15 @@ class RewardRuleFactory extends Factory
     public function inactive(): static
     {
         return $this->state(['is_active' => false]);
+    }
+
+    public function birthday(): static
+    {
+        return $this->state([
+            'type' => 'birthday',
+            'points_required' => 0,
+            'expires_in_days' => 1,
+        ]);
     }
 
     public function requiresPoints(int $points): static

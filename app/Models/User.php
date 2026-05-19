@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -19,6 +20,8 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, HashTrait, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
+
+    private const MIN_LIFETIME_POINTS = 10;
 
     /**
      * @var list<string>
@@ -28,6 +31,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'username',
         'email',
         'phone',
+        'date_of_birth',
         'avatar',
         'loyverse_customer_id',
         'password',
@@ -48,6 +52,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'date_of_birth' => 'date',
             'two_factor_confirmed_at' => 'datetime',
         ];
     }
@@ -85,6 +90,43 @@ class User extends Authenticatable implements MustVerifyEmail
     public function rewards(): HasMany
     {
         return $this->hasMany(Reward::class);
+    }
+
+    public function isBirthdayRewardClaimable(): bool
+    {
+        if ($this->loyaltyPoint?->lifetime_points < self::MIN_LIFETIME_POINTS) {
+            return false;
+        }
+
+        $dob = $this->date_of_birth;
+        if (! $dob) {
+            return false;
+        }
+
+        $today = Carbon::today();
+
+        $birthday = ($dob->month === 2 && $dob->day === 29 && ! $today->isLeapYear())
+            ? Carbon::create($today->year, 2, 28)
+            : Carbon::create($today->year, $dob->month, $dob->day);
+
+        $birthdayRewardRuleId = config('app.birthday_reward_rule_id');
+        $birthdayRewardRule = RewardRule::find($birthdayRewardRuleId);
+        if (! $birthdayRewardRule) {
+            return false;
+        }
+
+        $windowStart = $birthday->copy()->startOfDay();
+        $windowEnd = $birthday->copy()->addDays($birthdayRewardRule->expires_in_days - 1)->endOfDay();
+
+        if (! $today->betweenIncluded($windowStart, $windowEnd)) {
+            return false;
+        }
+
+        return ! $this->rewards()
+            ->where('reward_rule_id', $birthdayRewardRuleId)
+            ->where('status', 'claimed')
+            ->whereBetween('claimed_at', [$windowStart, $windowEnd])
+            ->exists();
     }
 
     public function hasPermission(string $permission): bool

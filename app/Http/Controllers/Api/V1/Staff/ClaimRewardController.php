@@ -33,16 +33,23 @@ class ClaimRewardController extends Controller
 
         $totalPoints = $user->loyaltyPoint?->total_points ?? 0;
 
-        $redeemable = RewardRule::query()
-            ->where('is_active', true)
+        $isBirthdayRewardClaimable = $user->isBirthdayRewardClaimable();
+
+        $redeemable = RewardRule::where('is_active', true)
             ->where('points_required', '<=', $totalPoints)
             ->get()
+            ->filter(fn (RewardRule $rule) => $isBirthdayRewardClaimable
+                ? $rule->isApplicableToBirthdayUser($user)
+                : $rule->isApplicableToUser($user))
+            ->values()
             ->map(fn (RewardRule $rule) => [
                 'id' => $rule->id,
                 'name' => $rule->name,
                 'reward_title' => $rule->reward_title,
                 'points_required' => $rule->points_required,
-                'redeemable_count' => (int) floor($totalPoints / $rule->points_required),
+                'redeemable_count' => $rule->points_required > 0
+                    ? (int) floor($totalPoints / $rule->points_required)
+                    : 1,
             ]);
 
         return response()->json([
@@ -83,7 +90,9 @@ class ClaimRewardController extends Controller
 
         $reward = $pointService->claimReward($user, $rewardRule, $user->loyaltyPoint, $claimAmount);
 
-        CreateLoyverseRewardReceipt::dispatch($reward, $user, $loyverseVariantId)
+        $staff = $request->user();
+
+        CreateLoyverseRewardReceipt::dispatch($reward, $user, $loyverseVariantId, $staff)
             ->onQueue('loyverse');
 
         return response()->json([

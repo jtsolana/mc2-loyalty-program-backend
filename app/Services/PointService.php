@@ -81,11 +81,23 @@ class PointService
 
     private function checkAndNotifyForReedemableRewards(User $customer): void
     {
-        $rewardRules = RewardRule::where('is_active', true)
-            ->where('points_required', '<=', $customer->loyaltyPoint->total_points)
-            ->count();
+        $loyaltyPoint = $customer->loyaltyPoint;
+        if (! $loyaltyPoint) {
+            return;
+        }
 
-        if ($rewardRules > 0) {
+        $rewardRules = RewardRule::where('is_active', true)->get();
+
+        $hasApplicableRewards = false;
+
+        foreach ($rewardRules as $rule) {
+            if ($rule->isApplicableToUser($customer)) {
+                $hasApplicableRewards = true;
+                break;
+            }
+        }
+
+        if ($hasApplicableRewards) {
             $messaging = Firebase::messaging();
             $mobileScheme = config('app.mobile_scheme');
 

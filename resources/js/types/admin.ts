@@ -4,6 +4,7 @@ export interface CustomerRow {
     username: string | null;
     email: string | null;
     phone: string | null;
+    date_of_birth: string | null;
     avatar: string | null;
     purchases_count: number;
     total_points: number;
@@ -82,6 +83,7 @@ export interface RewardRule {
     hashed_id: string;
     name: string;
     reward_title: string;
+    type: string;
     points_required: number;
     expires_in_days: number;
     is_active: boolean;

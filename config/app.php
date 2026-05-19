@@ -137,4 +137,6 @@ return [
 
     'loyverse_payment_type_id' => env('LOYVERSE_PAYMENT_TYPE_ID'),
 
+    'birthday_reward_rule_id' => env('BIRTHDAY_REWARD_RULE_ID'),
+
 ];

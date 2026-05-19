@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\Auth\ResetPasswordController;
-use App\Http\Controllers\Api\V1\Auth\SocialAuthController;
 use App\Http\Controllers\Api\V1\CompanyProfileController;
 use App\Http\Controllers\Api\V1\Customer\PointController;
 use App\Http\Controllers\Api\V1\Customer\ProfileController;
@@ -16,16 +15,18 @@ use App\Http\Controllers\Api\V1\PromotionController;
 use App\Http\Controllers\Api\V1\Staff\ClaimRewardController;
 use App\Http\Controllers\Api\V1\UserDeviceController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\Auth\SocialAuthController;
 
 Route::prefix('v1')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('register', RegisterController::class);
         Route::post('login', LoginController::class);
-        Route::post('social/{provider}', SocialAuthController::class);
         Route::post('logout', LogoutController::class)->middleware('auth:sanctum');
         Route::post('forgot-password', ForgotPasswordController::class);
         Route::post('reset-password', ResetPasswordController::class);
         Route::post('change-password', ChangePasswordController::class)->middleware('auth:sanctum');
+        Route::get('social/{provider}', [SocialAuthController::class, 'redirect'])->name('social.redirect');
+        Route::get('social/{provider}/callback', [SocialAuthController::class, 'callback'])->name('social.callback');
     });
 
     Route::middleware(['auth:sanctum', 'permission:points.view'])->prefix('customer')->group(function () {

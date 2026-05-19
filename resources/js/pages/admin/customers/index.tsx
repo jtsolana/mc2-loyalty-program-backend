@@ -78,7 +78,9 @@ export default function CustomersIndex({ customers, filters }: Props) {
                                             {((row['name'] as string) ?? 'U').charAt(0).toUpperCase()}
                                         </div>
                                         <div>
-                                            <p className="font-medium text-foreground">{row['name'] as string}</p>
+                                            <p className="font-medium text-foreground">
+                                                <Link href={`/admin/customers/${row['hashed_id'] as string}`}>{row['name'] as string}</Link>
+                                            </p>
                                             <p className="text-xs text-muted-foreground">
                                                 {(row['username'] as string) ? `@${row['username'] as string}` : (row['email'] as string)}
                                             </p>
@@ -88,6 +90,7 @@ export default function CustomersIndex({ customers, filters }: Props) {
                             },
                             { key: 'email', header: 'Email', render: (row) => (row['email'] as string) ?? '—' },
                             { key: 'phone', header: 'Phone', render: (row) => (row['phone'] as string) ?? '—' },
+                            { key: 'date_of_birth', header: 'Date of Birth', render: (row) => (row['date_of_birth'] as string) ?? '—' },
                             {
                                 key: 'purchases_count',
                                 header: 'Purchases',
